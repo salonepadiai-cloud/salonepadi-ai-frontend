@@ -1,0 +1,240 @@
+* {
+  box-sizing: border-box;
+}
+
+:root {
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+
+  color: #f8fafc;
+  background: #020617;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+.home-page,
+.auth-page,
+.dashboard,
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at top,
+      #172554 0,
+      #020617 45%
+    );
+}
+
+.home-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30px;
+}
+
+.hero {
+  width: min(720px, 100%);
+  text-align: center;
+}
+
+.hero-logo {
+  font-size: 70px;
+  margin-bottom: 20px;
+}
+
+.eyebrow {
+  color: #94a3b8;
+  letter-spacing: 3px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.hero h1 {
+  margin: 15px 0;
+  font-size: clamp(48px, 10vw, 90px);
+  line-height: 0.95;
+}
+
+.hero-text {
+  max-width: 560px;
+  margin: 25px auto;
+  color: #94a3b8;
+  line-height: 1.7;
+  font-size: 18px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-top: 30px;
+}
+
+.primary-button,
+.secondary-button {
+  border-radius: 12px;
+  padding: 13px 22px;
+  border: 1px solid #334155;
+  display: inline-block;
+  font-weight: 700;
+}
+
+.primary-button {
+  background: #f8fafc;
+  color: #020617;
+}
+
+.secondary-button {
+  background: #0f172a;
+  color: #f8fafc;
+}
+
+.kushe {
+  margin-top: 50px;
+  color: #64748b;
+}
+
+.auth-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.auth-card {
+  width: min(430px, 100%);
+  padding: 30px;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 20px;
+}
+
+.auth-logo {
+  font-size: 45px;
+}
+
+.auth-card h1 {
+  margin-bottom: 5px;
+}
+
+.auth-card p {
+  color: #94a3b8;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 14px;
+  margin-top: 12px;
+  border: 1px solid #334155;
+  border-radius: 10px;
+  background: #020617;
+  color: white;
+  outline: none;
+}
+
+.auth-card .primary-button {
+  width: 100%;
+  border: none;
+  margin-top: 15px;
+}
+
+.error {
+  margin: 15px 0;
+  padding: 12px;
+  border-radius: 10px;
+  background: #450a0a;
+  color: #fecaca;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.auth-footer a {
+  color: #93c5fd;
+}
+
+.dashboard {
+  padding: 50px 20px;
+}
+
+.dashboard-header,
+.dashboard-grid {
+  width: min(1000px, 100%);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.dashboard-header {
+  margin-bottom: 35px;
+}
+
+.dashboard-header h1 {
+  font-size: clamp(32px, 7vw, 55px);
+}
+
+.dashboard-header p {
+  color: #94a3b8;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 15px;
+}
+
+.dashboard-card {
+  padding: 25px;
+  border: 1px solid #1e293b;
+  border-radius: 18px;
+  background: #0f172a;
+}
+
+.dashboard-card:hover {
+  border-color: #475569;
+}
+
+.dashboard-card span {
+  font-size: 32px;
+}
+
+.dashboard-card p {
+  color: #94a3b8;
+}
+
+.page {
+  padding: 40px 20px;
+}
+
+@media (max-width: 700px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+  }
+
+  .hero-actions a {
+    text-align: center;
+  }
+}
