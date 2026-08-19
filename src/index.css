@@ -5,33 +5,13 @@
 html,
 body,
 #root {
-  margin: 0;
   width: 100%;
   min-height: 100%;
+  margin: 0;
 }
 
 body {
   font-family: Arial, sans-serif;
   background: #020617;
-  color: #ffffff;
-}
-
-.app {
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 24px;
-}
-
-.app h1 {
-  font-size: 48px;
-  margin-bottom: 10px;
-}
-
-.app p {
-  color: #94a3b8;
-  font-size: 18px;
+  color: #f8fafc;
 }
