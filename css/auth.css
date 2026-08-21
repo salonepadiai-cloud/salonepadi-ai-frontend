@@ -199,5 +199,46 @@
 
   .auth-container h1 {
     font-size: 27px;
+     .password-field {
+  position: relative;
+  width: 100%;
+}
+
+.password-field input {
+  width: 100%;
+  padding-right: 58px;
+  box-sizing: border-box;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+
+  width: 42px;
+  height: 42px;
+
+  border: none;
+  background: transparent;
+
+  font-size: 22px;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-toggle:hover {
+  opacity: 0.8;
+}
+
+.success-message {
+  color: #8ee6a8;
+}
+
+.error-message {
+  color: #ff9b9b;
   }
 }
