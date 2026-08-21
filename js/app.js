@@ -1,35 +1,29 @@
 import { renderHome } from "./pages/home.js";
-import { renderLogin } from "./pages/login.js";
-import { renderSignup } from "./pages/signup.js";
 
-const app = document.getElementById("app");
+document.addEventListener("DOMContentLoaded", () => {
+  const app = document.getElementById("app");
 
-if (!app) {
-  throw new Error(
-    "SalonePadi AI app container was not found."
-  );
-}
-
-function startApp() {
-  const route =
-    window.location.hash || "#/";
-
-  if (route === "#/login") {
-    renderLogin(app);
+  if (!app) {
+    document.body.innerHTML = `
+      <div style="padding:30px;font-family:Arial;color:white;background:#050816;min-height:100vh;">
+        <h1>SalonePadi AI</h1>
+        <p>App container not found.</p>
+      </div>
+    `;
     return;
   }
 
-  if (route === "#/signup") {
-    renderSignup(app);
-    return;
+  try {
+    renderHome(app);
+  } catch (error) {
+    console.error("SalonePadi AI failed to start:", error);
+
+    app.innerHTML = `
+      <div style="padding:30px;font-family:Arial;color:white;">
+        <h1>SalonePadi AI</h1>
+        <p>Something went wrong while starting the app.</p>
+        <small>${error.message}</small>
+      </div>
+    `;
   }
-
-  renderHome(app);
-}
-
-window.addEventListener(
-  "hashchange",
-  startApp
-);
-
-startApp();
+});
