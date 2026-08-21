@@ -1,34 +1,34 @@
 import { renderHome } from "./pages/home.js";
-import { renderLogin } from "./pages/login.js";
-import { renderSignup } from "./pages/signup.js";
 
 const app = document.getElementById("app");
 
-function startApp() {
-  if (!app) {
-    throw new Error(
-      "SalonePadi AI app container was not found."
-    );
-  }
+if (!app) {
+  throw new Error(
+    "SalonePadi AI app container was not found."
+  );
+}
 
+function startApp() {
   const route = window.location.hash || "#/";
 
+  if (route === "#/") {
+    renderHome(app);
+    return;
+  }
+
   if (route === "#/login") {
-    renderLogin(app);
+    window.location.hash = "#/";
     return;
   }
 
   if (route === "#/signup") {
-    renderSignup(app);
+    window.location.hash = "#/";
     return;
   }
 
   renderHome(app);
 }
 
-window.addEventListener(
-  "hashchange",
-  startApp
-);
+window.addEventListener("hashchange", startApp);
 
 startApp();
