@@ -1,4 +1,6 @@
 import { renderHome } from "./pages/home.js";
+import { renderLogin } from "./pages/login.js";
+import { renderSignup } from "./pages/signup.js";
 
 const app = document.getElementById("app");
 
@@ -9,26 +11,25 @@ if (!app) {
 }
 
 function startApp() {
-  const route = window.location.hash || "#/";
-
-  if (route === "#/") {
-    renderHome(app);
-    return;
-  }
+  const route =
+    window.location.hash || "#/";
 
   if (route === "#/login") {
-    window.location.hash = "#/";
+    renderLogin(app);
     return;
   }
 
   if (route === "#/signup") {
-    window.location.hash = "#/";
+    renderSignup(app);
     return;
   }
 
   renderHome(app);
 }
 
-window.addEventListener("hashchange", startApp);
+window.addEventListener(
+  "hashchange",
+  startApp
+);
 
 startApp();
