@@ -33,7 +33,8 @@ export function AuthProvider({ children }) {
       try {
         const data = await getCurrentUser();
         setUser(data.user || null);
-      } catch {
+      } catch (error) {
+        console.error("Session restore failed:", error);
         clearStorage();
         setUser(null);
       } finally {
@@ -45,8 +46,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(email, password) {
-    const data = await loginService(email, password);
-    setUser(data.user);
+    const data = await loginService(
+      email,
+      password
+    );
+
+    setUser(data.user || null);
+
     return data;
   }
 
@@ -65,8 +71,11 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    await logoutService();
-    setUser(null);
+    try {
+      await logoutService();
+    } finally {
+      setUser(null);
+    }
   }
 
   return (
@@ -83,4 +92,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-      }
+}
