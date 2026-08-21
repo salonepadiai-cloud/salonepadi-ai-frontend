@@ -1,104 +1,52 @@
-import { login } from "../auth.js";
-import { authenticated } from "../auth.js";
+import { api } from "../api.js";
 
 export function renderLogin(container) {
-  if (authenticated()) {
-    window.location.hash = "#/chat";
-    return;
-  }
-
   container.innerHTML = `
     <main class="auth-page">
 
       <section class="auth-container">
 
-        <div class="auth-logo">
-          <div class="auth-logo-icon">🦁</div>
+        <div class="auth-logo">🦁</div>
 
-          <h1 class="auth-logo-title">
-            SalonePadi AI
-          </h1>
-        </div>
+        <h1>Welcome back</h1>
 
-        <div class="auth-card">
+        <p>
+          Log in to continue with SalonePadi AI.
+        </p>
 
-          <h2>Welcome back</h2>
+        <form id="loginForm">
 
-          <p class="auth-description">
-            Log in to continue using SalonePadi AI.
-          </p>
+          <input
+            id="email"
+            type="email"
+            placeholder="Email address"
+            autocomplete="email"
+            required
+          />
 
-          <form
-            id="loginForm"
-            class="auth-form"
-          >
+          <input
+            id="password"
+            type="password"
+            placeholder="Password"
+            autocomplete="current-password"
+            required
+          />
 
-            <div class="auth-field">
-              <label for="loginEmail">
-                Email
-              </label>
+          <button id="loginButton" type="submit">
+            Log In
+          </button>
 
-              <input
-                id="loginEmail"
-                type="email"
-                name="email"
-                placeholder="Enter your email"
-                autocomplete="email"
-                required
-              >
-            </div>
+        </form>
 
-            <div class="auth-field">
-              <label for="loginPassword">
-                Password
-              </label>
+        <p id="loginMessage"></p>
 
-              <input
-                id="loginPassword"
-                type="password"
-                name="password"
-                placeholder="Enter your password"
-                autocomplete="current-password"
-                required
-              >
-            </div>
-
-            <button
-              id="loginSubmit"
-              class="auth-submit"
-              type="submit"
-            >
-              Log In
-            </button>
-
-          </form>
-
-          <div
-            id="loginMessage"
-            aria-live="polite"
-          ></div>
-
-          <div class="auth-link">
-            Don't have an account?
-
-            <button
-              id="goSignup"
-              type="button"
-            >
-              Create Account
-            </button>
-          </div>
-
-          <div class="auth-link">
-            <button
-              id="goHome"
-              type="button"
-            >
-              ← Back to Home
-            </button>
-          </div>
-
-        </div>
+        <button
+          id="signupLink"
+          class="auth-link"
+          type="button"
+        >
+          Don't have an account? Create one
+        </button>
 
       </section>
 
@@ -108,61 +56,63 @@ export function renderLogin(container) {
   const form =
     document.getElementById("loginForm");
 
-  const submitButton =
-    document.getElementById("loginSubmit");
-
   const message =
     document.getElementById("loginMessage");
 
-  const signupButton =
-    document.getElementById("goSignup");
+  const button =
+    document.getElementById("loginButton");
 
-  const homeButton =
-    document.getElementById("goHome");
-
-  signupButton.addEventListener("click", () => {
-    window.location.hash = "#/signup";
-  });
-
-  homeButton.addEventListener("click", () => {
-    window.location.hash = "#/";
-  });
+  document
+    .getElementById("signupLink")
+    .addEventListener("click", () => {
+      window.location.hash = "#/signup";
+    });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const email =
-      document
-        .getElementById("loginEmail")
-        .value
-        .trim();
+      document.getElementById("email").value.trim();
 
     const password =
-      document
-        .getElementById("loginPassword")
-        .value;
+      document.getElementById("password").value;
 
-    message.className = "";
+    button.disabled = true;
+    button.textContent = "Logging in...";
     message.textContent = "";
 
-    submitButton.disabled = true;
-    submitButton.textContent = "Logging in...";
-
     try {
-      await login(email, password);
+      const data = await api.post(
+        "/api/auth/login",
+        {
+          email,
+          password
+        }
+      );
+
+      if (data.session?.access_token) {
+        localStorage.setItem(
+          "salonepadi_access_token",
+          data.session.access_token
+        );
+      }
+
+      if (data.user) {
+        localStorage.setItem(
+          "salonepadi_user",
+          JSON.stringify(data.user)
+        );
+      }
 
       window.location.hash = "#/chat";
 
     } catch (error) {
-      message.className =
-        "auth-message auth-error";
-
       message.textContent =
         error.message ||
         "Unable to log in.";
-    } finally {
-      submitButton.disabled = false;
-      submitButton.textContent = "Log In";
+
+      button.disabled = false;
+      button.textContent = "Log In";
     }
   });
 }
