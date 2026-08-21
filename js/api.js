@@ -4,14 +4,9 @@ import {
   clearStorage
 } from "./utils/storage.js";
 
-async function request(
-  endpoint,
-  options = {}
-) {
+async function request(endpoint, options = {}) {
   if (!CONFIG.apiUrl) {
-    throw new Error(
-      "Backend API URL has not been configured."
-    );
+    throw new Error("Backend API URL has not been configured.");
   }
 
   const token = getToken();
@@ -22,41 +17,52 @@ async function request(
   };
 
   if (token) {
-    headers.Authorization =
-      `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(
-    `${CONFIG.apiUrl}${endpoint}`,
-    {
-      ...options,
-      headers
-    }
-  );
+  let response;
+
+  try {
+    response = await fetch(
+      `${CONFIG.apiUrl}${endpoint}`,
+      {
+        ...options,
+        headers
+      }
+    );
+  } catch (error) {
+    console.error("API connection error:", error);
+
+    throw new Error(
+      "Unable to connect to SalonePadi AI server."
+    );
+  }
 
   const contentType =
-    response.headers.get("content-type");
+    response.headers.get("content-type") || "";
 
-  const data =
-    contentType?.includes(
-      "application/json"
-    )
-      ? await response.json()
-      : await response.text();
+  let data;
+
+  if (contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    data = await response.text();
+  }
 
   if (response.status === 401) {
     clearStorage();
 
     throw new Error(
-      "Your session has expired."
+      "Your session has expired. Please log in again."
     );
   }
 
   if (!response.ok) {
     const message =
       typeof data === "object"
-        ? data.error ||
-          data.message
+        ? data?.error ||
+          data?.message ||
+          "Request failed."
         : data;
 
     throw new Error(
@@ -69,13 +75,28 @@ async function request(
 
 export const api = {
   get(endpoint) {
-    return request(endpoint);
+    return request(endpoint, {
+      method: "GET"
+    });
   },
 
-  post(endpoint, body) {
+  post(endpoint, body = {}) {
     return request(endpoint, {
       method: "POST",
       body: JSON.stringify(body)
+    });
+  },
+
+  patch(endpoint, body = {}) {
+    return request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(body)
+    });
+  },
+
+  delete(endpoint) {
+    return request(endpoint, {
+      method: "DELETE"
     });
   }
 };
