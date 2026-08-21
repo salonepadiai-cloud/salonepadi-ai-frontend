@@ -1,52 +1,25 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route
-} from "react-router-dom";
-
-import Home from "./pages/Home/Home.jsx";
-import Login from "./pages/Login/Login.jsx";
-import Signup from "./pages/Signup/Signup.jsx";
-import Dashboard from "./pages/Dashboard/Dashboard.jsx";
-import Chat from "./pages/Chat/Chat.jsx";
-
-import ProtectedRoute from "./auth/ProtectedRoute.jsx";
-
 export default function App() {
   return (
-    <BrowserRouter>
-      <Routes>
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "#020617",
+        color: "#ffffff",
+        fontFamily: "Arial, sans-serif",
+        textAlign: "center",
+        padding: "24px"
+      }}
+    >
+      <div>
+        <div style={{ fontSize: "64px" }}>🦁</div>
 
-        <Route
-          path="/"
-          element={<Home />}
-        />
+        <h1>SalonePadi AI</h1>
 
-        <Route
-          path="/login"
-          element={<Login />}
-        />
-
-        <Route
-          path="/signup"
-          element={<Signup />}
-        />
-
-        <Route element={<ProtectedRoute />}>
-
-          <Route
-            path="/dashboard"
-            element={<Dashboard />}
-          />
-
-          <Route
-            path="/chat"
-            element={<Chat />}
-          />
-
-        </Route>
-
-      </Routes>
-    </BrowserRouter>
+        <p>Frontend is connected and running.</p>
+      </div>
+    </div>
   );
 }
