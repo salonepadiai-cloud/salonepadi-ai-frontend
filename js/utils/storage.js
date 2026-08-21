@@ -1,12 +1,18 @@
-const TOKEN_KEY = "salonepadi_access_token";
-const USER_KEY = "salonepadi_user";
+const TOKEN_KEY =
+  "salonepadi_access_token";
+
+const USER_KEY =
+  "salonepadi_user";
 
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 
 export function saveToken(token) {
-  localStorage.setItem(TOKEN_KEY, token);
+  localStorage.setItem(
+    TOKEN_KEY,
+    token
+  );
 }
 
 export function getUser() {
@@ -34,8 +40,4 @@ export function saveUser(user) {
 export function clearStorage() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
-}
-
-export function isLoggedIn() {
-  return Boolean(getToken());
 }
