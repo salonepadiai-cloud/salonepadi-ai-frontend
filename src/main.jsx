@@ -1,19 +1,16 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App.jsx";
-import { AuthProvider } from "./auth/AuthContext.jsx";
 import "./index.css";
 
 const root = document.getElementById("root");
 
 if (!root) {
-  throw new Error("Root element #root was not found.");
-}
-
-ReactDOM.createRoot(root).render(
-  <React.StrictMode>
-    <AuthProvider>
+  document.body.innerHTML = "<h1>SalonePadi AI: root element missing</h1>";
+} else {
+  ReactDOM.createRoot(root).render(
+    <React.StrictMode>
       <App />
-    </AuthProvider>
-  </React.StrictMode>
-);
+    </React.StrictMode>
+  );
+}
