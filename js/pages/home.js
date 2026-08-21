@@ -4,7 +4,7 @@ export function renderHome(container) {
 
       <section class="home-container">
 
-        <div class="home-logo">
+        <div class="home-logo" aria-label="SalonePadi AI">
           🦁
         </div>
 
@@ -48,11 +48,15 @@ export function renderHome(container) {
   const signupButton =
     document.getElementById("signupButton");
 
-  loginButton.addEventListener("click", () => {
-    console.log("Login selected");
-  });
+  if (loginButton) {
+    loginButton.addEventListener("click", () => {
+      window.location.hash = "#/login";
+    });
+  }
 
-  signupButton.addEventListener("click", () => {
-    console.log("Create account selected");
-  });
+  if (signupButton) {
+    signupButton.addEventListener("click", () => {
+      window.location.hash = "#/signup";
+    });
+  }
 }
