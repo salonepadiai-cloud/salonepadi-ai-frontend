@@ -16,13 +16,24 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<Home />} />
 
-        <Route path="/login" element={<Login />} />
+        <Route
+          path="/"
+          element={<Home />}
+        />
 
-        <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/login"
+          element={<Login />}
+        />
+
+        <Route
+          path="/signup"
+          element={<Signup />}
+        />
 
         <Route element={<ProtectedRoute />}>
+
           <Route
             path="/dashboard"
             element={<Dashboard />}
@@ -32,7 +43,9 @@ export default function App() {
             path="/chat"
             element={<Chat />}
           />
+
         </Route>
+
       </Routes>
     </BrowserRouter>
   );
