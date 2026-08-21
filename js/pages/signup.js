@@ -1,121 +1,62 @@
-import { signup } from "../auth.js";
-import { authenticated } from "../auth.js";
+import { api } from "../api.js";
 
 export function renderSignup(container) {
-  if (authenticated()) {
-    window.location.hash = "#/chat";
-    return;
-  }
-
   container.innerHTML = `
     <main class="auth-page">
 
       <section class="auth-container">
 
-        <div class="auth-logo">
-          <div class="auth-logo-icon">🦁</div>
+        <div class="auth-logo">🦁</div>
 
-          <h1 class="auth-logo-title">
-            SalonePadi AI
-          </h1>
-        </div>
+        <h1>Create your account</h1>
 
-        <div class="auth-card">
+        <p>
+          Join SalonePadi AI and start building
+          your personal AI relationship.
+        </p>
 
-          <h2>Create your account</h2>
+        <form id="signupForm">
 
-          <p class="auth-description">
-            Create an account to start using
-            your personal AI padi.
-          </p>
+          <input
+            id="name"
+            type="text"
+            placeholder="Your name"
+            autocomplete="name"
+            required
+          />
 
-          <form
-            id="signupForm"
-            class="auth-form"
-          >
+          <input
+            id="email"
+            type="email"
+            placeholder="Email address"
+            autocomplete="email"
+            required
+          />
 
-            <div class="auth-field">
-              <label for="signupName">
-                Name
-              </label>
+          <input
+            id="password"
+            type="password"
+            placeholder="Password"
+            autocomplete="new-password"
+            minlength="6"
+            required
+          />
 
-              <input
-                id="signupName"
-                type="text"
-                name="name"
-                placeholder="Enter your name"
-                autocomplete="name"
-                required
-              >
-            </div>
+          <button id="signupButton" type="submit">
+            Create Account
+          </button>
 
-            <div class="auth-field">
-              <label for="signupEmail">
-                Email
-              </label>
+        </form>
 
-              <input
-                id="signupEmail"
-                type="email"
-                name="email"
-                placeholder="Enter your email"
-                autocomplete="email"
-                required
-              >
-            </div>
+        <p id="signupMessage"></p>
 
-            <div class="auth-field">
-              <label for="signupPassword">
-                Password
-              </label>
-
-              <input
-                id="signupPassword"
-                type="password"
-                name="password"
-                placeholder="Create a password"
-                autocomplete="new-password"
-                minlength="6"
-                required
-              >
-            </div>
-
-            <button
-              id="signupSubmit"
-              class="auth-submit"
-              type="submit"
-            >
-              Create Account
-            </button>
-
-          </form>
-
-          <div
-            id="signupMessage"
-            aria-live="polite"
-          ></div>
-
-          <div class="auth-link">
-            Already have an account?
-
-            <button
-              id="goLogin"
-              type="button"
-            >
-              Log In
-            </button>
-          </div>
-
-          <div class="auth-link">
-            <button
-              id="goHome"
-              type="button"
-            >
-              ← Back to Home
-            </button>
-          </div>
-
-        </div>
+        <button
+          id="loginLink"
+          class="auth-link"
+          type="button"
+        >
+          Already have an account? Log in
+        </button>
 
       </section>
 
@@ -125,71 +66,70 @@ export function renderSignup(container) {
   const form =
     document.getElementById("signupForm");
 
-  const submitButton =
-    document.getElementById("signupSubmit");
-
   const message =
     document.getElementById("signupMessage");
 
-  document
-    .getElementById("goLogin")
-    .addEventListener("click", () => {
-      window.location.hash = "#/login";
-    });
+  const button =
+    document.getElementById("signupButton");
 
   document
-    .getElementById("goHome")
+    .getElementById("loginLink")
     .addEventListener("click", () => {
-      window.location.hash = "#/";
+      window.location.hash = "#/login";
     });
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
 
     const name =
-      document
-        .getElementById("signupName")
-        .value
-        .trim();
+      document.getElementById("name").value.trim();
 
     const email =
-      document
-        .getElementById("signupEmail")
-        .value
-        .trim();
+      document.getElementById("email").value.trim();
 
     const password =
-      document
-        .getElementById("signupPassword")
-        .value;
+      document.getElementById("password").value;
 
-    message.className = "";
+    button.disabled = true;
+    button.textContent = "Creating account...";
     message.textContent = "";
 
-    submitButton.disabled = true;
-    submitButton.textContent =
-      "Creating account...";
-
     try {
-      await signup(
-        name,
-        email,
-        password
+      const data = await api.post(
+        "/api/auth/signup",
+        {
+          name,
+          email,
+          password
+        }
       );
+
+      if (data.session?.access_token) {
+        localStorage.setItem(
+          "salonepadi_access_token",
+          data.session.access_token
+        );
+      }
+
+      if (data.user) {
+        localStorage.setItem(
+          "salonepadi_user",
+          JSON.stringify(data.user)
+        );
+      }
+
+      message.textContent =
+        "Account created successfully.";
 
       window.location.hash = "#/chat";
 
     } catch (error) {
-      message.className =
-        "auth-message auth-error";
-
       message.textContent =
         error.message ||
-        "Unable to create account.";
-    } finally {
-      submitButton.disabled = false;
-      submitButton.textContent =
-        "Create Account";
+        "Unable to create your account.";
+
+      button.disabled = false;
+      button.textContent = "Create Account";
     }
   });
 }
