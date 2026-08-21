@@ -1,5 +1,8 @@
 import { api } from "../api.js";
 
+const TOKEN_KEY = "salonepadi_access_token";
+const USER_KEY = "salonepadi_user";
+
 export function renderSignup(container) {
   container.innerHTML = `
     <main class="auth-page">
@@ -33,16 +36,33 @@ export function renderSignup(container) {
             required
           />
 
-          <input
-            id="password"
-            type="password"
-            placeholder="Password"
-            autocomplete="new-password"
-            minlength="6"
-            required
-          />
+          <div class="password-field">
 
-          <button id="signupButton" type="submit">
+            <input
+              id="password"
+              type="password"
+              placeholder="Password"
+              autocomplete="new-password"
+              minlength="6"
+              required
+            />
+
+            <button
+              id="togglePassword"
+              class="password-toggle"
+              type="button"
+              aria-label="Show password"
+              title="Show password"
+            >
+              👁️
+            </button>
+
+          </div>
+
+          <button
+            id="signupButton"
+            type="submit"
+          >
             Create Account
           </button>
 
@@ -72,64 +92,160 @@ export function renderSignup(container) {
   const button =
     document.getElementById("signupButton");
 
+  const password =
+    document.getElementById("password");
+
+  const togglePassword =
+    document.getElementById("togglePassword");
+
+  /*
+   * Show / hide password
+   */
+  togglePassword.addEventListener(
+    "click",
+    () => {
+      const isHidden =
+        password.type === "password";
+
+      password.type =
+        isHidden ? "text" : "password";
+
+      togglePassword.textContent =
+        isHidden ? "🙈" : "👁️";
+
+      togglePassword.setAttribute(
+        "aria-label",
+        isHidden
+          ? "Hide password"
+          : "Show password"
+      );
+
+      togglePassword.setAttribute(
+        "title",
+        isHidden
+          ? "Hide password"
+          : "Show password"
+      );
+    }
+  );
+
+  /*
+   * Go to login
+   */
   document
     .getElementById("loginLink")
     .addEventListener("click", () => {
       window.location.hash = "#/login";
     });
 
-  form.addEventListener("submit", async (event) => {
-    event.preventDefault();
+  /*
+   * Create account
+   */
+  form.addEventListener(
+    "submit",
+    async (event) => {
+      event.preventDefault();
 
-    const name =
-      document.getElementById("name").value.trim();
+      const name =
+        document
+          .getElementById("name")
+          .value
+          .trim();
 
-    const email =
-      document.getElementById("email").value.trim();
+      const email =
+        document
+          .getElementById("email")
+          .value
+          .trim()
+          .toLowerCase();
 
-    const password =
-      document.getElementById("password").value;
+      const passwordValue =
+        password.value;
 
-    button.disabled = true;
-    button.textContent = "Creating account...";
-    message.textContent = "";
+      button.disabled = true;
+      button.textContent =
+        "Creating account...";
 
-    try {
-      const data = await api.post(
-        "/api/auth/signup",
-        {
-          name,
-          email,
-          password
+      message.textContent = "";
+      message.className = "";
+
+      try {
+        const data = await api.post(
+          "/api/auth/signup",
+          {
+            name,
+            email,
+            password: passwordValue
+          }
+        );
+
+        /*
+         * A real login session must exist
+         * before entering the AI chat.
+         */
+        const token =
+          data?.session?.access_token;
+
+        const user =
+          data?.user;
+
+        if (!token) {
+          throw new Error(
+            "Account created, but no login session was returned. Please log in."
+          );
         }
-      );
 
-      if (data.session?.access_token) {
+        if (!user) {
+          throw new Error(
+            "Account created, but your user session was not returned."
+          );
+        }
+
+        /*
+         * Save authenticated session
+         */
         localStorage.setItem(
-          "salonepadi_access_token",
-          data.session.access_token
+          TOKEN_KEY,
+          token
         );
-      }
 
-      if (data.user) {
         localStorage.setItem(
-          "salonepadi_user",
-          JSON.stringify(data.user)
+          USER_KEY,
+          JSON.stringify(user)
         );
+
+        message.textContent =
+          "Account created successfully. Opening SalonePadi AI...";
+
+        message.className =
+          "success-message";
+
+        /*
+         * Give localStorage a moment to finish
+         * before changing the application route.
+         */
+        setTimeout(() => {
+          window.location.hash =
+            "#/chat";
+        }, 300);
+
+      } catch (error) {
+        console.error(
+          "Signup error:",
+          error
+        );
+
+        message.textContent =
+          error.message ||
+          "Unable to create your account.";
+
+        message.className =
+          "error-message";
+
+        button.disabled = false;
+        button.textContent =
+          "Create Account";
       }
-
-      message.textContent =
-        "Account created successfully.";
-
-      window.location.hash = "#/chat";
-
-    } catch (error) {
-      message.textContent =
-        error.message ||
-        "Unable to create your account.";
-
-      button.disabled = false;
-      button.textContent = "Create Account";
     }
-  });
+  );
 }
