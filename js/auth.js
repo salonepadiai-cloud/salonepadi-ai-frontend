@@ -1,4 +1,5 @@
-import { API_URL } from "./config.js";
+import { CONFIG } from "./config.js";
+
 import {
   getToken,
   getUser,
@@ -12,80 +13,24 @@ export function authenticated() {
 }
 
 export async function login(email, password) {
-  const response = await fetch(
-    `${API_URL}/api/auth/login`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        email,
-        password
-      })
+  return request("/api/auth/login", {
+    method: "POST",
+    body: {
+      email,
+      password
     }
-  );
-
-  const data = await readResponse(response);
-
-  if (!response.ok) {
-    throw new Error(
-      data.error ||
-      data.message ||
-      "Login failed."
-    );
-  }
-
-  if (data.session?.access_token) {
-    saveToken(data.session.access_token);
-  }
-
-  if (data.user) {
-    saveUser(data.user);
-  }
-
-  return data;
+  });
 }
 
-export async function signup(
-  name,
-  email,
-  password
-) {
-  const response = await fetch(
-    `${API_URL}/api/auth/signup`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        password
-      })
+export async function signup(name, email, password) {
+  return request("/api/auth/signup", {
+    method: "POST",
+    body: {
+      name,
+      email,
+      password
     }
-  );
-
-  const data = await readResponse(response);
-
-  if (!response.ok) {
-    throw new Error(
-      data.error ||
-      data.message ||
-      "Account creation failed."
-    );
-  }
-
-  if (data.session?.access_token) {
-    saveToken(data.session.access_token);
-  }
-
-  if (data.user) {
-    saveUser(data.user);
-  }
-
-  return data;
+  });
 }
 
 export async function logout() {
@@ -93,16 +38,10 @@ export async function logout() {
 
   try {
     if (token) {
-      await fetch(
-        `${API_URL}/api/auth/logout`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      await request("/api/auth/logout", {
+        method: "POST",
+        token
+      });
     }
   } finally {
     clearStorage();
@@ -113,17 +52,74 @@ export function currentUser() {
   return getUser();
 }
 
-async function readResponse(response) {
+async function request(endpoint, options = {}) {
+  if (!CONFIG.apiUrl) {
+    throw new Error(
+      "Backend API URL has not been configured."
+    );
+  }
+
+  const headers = {
+    "Content-Type": "application/json"
+  };
+
+  const token = options.token || getToken();
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  let response;
+
+  try {
+    response = await fetch(
+      `${CONFIG.apiUrl}${endpoint}`,
+      {
+        method: options.method || "GET",
+        headers,
+        body: options.body
+          ? JSON.stringify(options.body)
+          : undefined
+      }
+    );
+  } catch (error) {
+    console.error("SalonePadi AI API error:", error);
+
+    throw new Error(
+      "Unable to connect to SalonePadi AI server."
+    );
+  }
+
   const contentType =
     response.headers.get("content-type") || "";
 
+  let data;
+
   if (contentType.includes("application/json")) {
-    return response.json();
+    data = await response.json();
+  } else {
+    const text = await response.text();
+
+    data = {
+      message: text
+    };
   }
 
-  const text = await response.text();
+  if (!response.ok) {
+    throw new Error(
+      data?.error ||
+      data?.message ||
+      "Request failed."
+    );
+  }
 
-  return {
-    message: text
-  };
+  if (data.session?.access_token) {
+    saveToken(data.session.access_token);
+  }
+
+  if (data.user) {
+    saveUser(data.user);
+  }
+
+  return data;
 }
