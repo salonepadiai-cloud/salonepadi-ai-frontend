@@ -6,7 +6,9 @@ import {
 
 async function request(endpoint, options = {}) {
   if (!CONFIG.apiUrl) {
-    throw new Error("Backend API URL has not been configured.");
+    throw new Error(
+      "Backend API URL has not been configured."
+    );
   }
 
   const token = getToken();
@@ -31,7 +33,10 @@ async function request(endpoint, options = {}) {
       }
     );
   } catch (error) {
-    console.error("API connection error:", error);
+    console.error(
+      "API connection error:",
+      error
+    );
 
     throw new Error(
       "Unable to connect to SalonePadi AI server."
@@ -46,14 +51,23 @@ async function request(endpoint, options = {}) {
   if (contentType.includes("application/json")) {
     data = await response.json();
   } else {
-    data = await response.text();
+    const text = await response.text();
+
+    data = {
+      message: text
+    };
   }
 
+  /*
+   * Only clear the local session when the backend
+   * explicitly tells us that the authentication
+   * token is invalid.
+   */
   if (response.status === 401) {
     clearStorage();
 
     throw new Error(
-      "Your session has expired. Please log in again."
+      "Your session is invalid or has expired. Please log in again."
     );
   }
 
