@@ -9,21 +9,32 @@ import {
 } from "./utils/storage.js";
 
 export function authenticated() {
-  return Boolean(getToken() && getUser());
+  return Boolean(getToken());
 }
 
 export async function login(email, password) {
-  return request("/api/auth/login", {
+  const data = await request("/api/auth/login", {
     method: "POST",
     body: {
       email,
       password
     }
   });
+
+  // Make sure the session is actually stored
+  if (data.session?.access_token) {
+    saveToken(data.session.access_token);
+  }
+
+  if (data.user) {
+    saveUser(data.user);
+  }
+
+  return data;
 }
 
 export async function signup(name, email, password) {
-  return request("/api/auth/signup", {
+  const data = await request("/api/auth/signup", {
     method: "POST",
     body: {
       name,
@@ -31,6 +42,17 @@ export async function signup(name, email, password) {
       password
     }
   });
+
+  // Supabase may return a session immediately.
+  if (data.session?.access_token) {
+    saveToken(data.session.access_token);
+  }
+
+  if (data.user) {
+    saveUser(data.user);
+  }
+
+  return data;
 }
 
 export async function logout() {
@@ -43,6 +65,8 @@ export async function logout() {
         token
       });
     }
+  } catch (error) {
+    console.warn("Logout request failed:", error);
   } finally {
     clearStorage();
   }
@@ -83,7 +107,10 @@ async function request(endpoint, options = {}) {
       }
     );
   } catch (error) {
-    console.error("SalonePadi AI API error:", error);
+    console.error(
+      "SalonePadi AI connection error:",
+      error
+    );
 
     throw new Error(
       "Unable to connect to SalonePadi AI server."
@@ -105,18 +132,27 @@ async function request(endpoint, options = {}) {
     };
   }
 
+  /*
+   * Never automatically clear the session here.
+   *
+   * The router/API layer should decide what to do
+   * with a 401 response. Automatically deleting the
+   * token can cause the login/session redirect loop.
+   */
   if (!response.ok) {
     throw new Error(
       data?.error ||
       data?.message ||
-      "Request failed."
+      `Request failed (${response.status}).`
     );
   }
 
+  // Save authentication session returned by Supabase.
   if (data.session?.access_token) {
     saveToken(data.session.access_token);
   }
 
+  // Save the authenticated user.
   if (data.user) {
     saveUser(data.user);
   }
