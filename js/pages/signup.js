@@ -1,7 +1,6 @@
-import { api } from "../api.js";
-
-const TOKEN_KEY = "salonepadi_access_token";
-const USER_KEY = "salonepadi_user";
+import {
+  signup
+} from "../auth.js";
 
 export function renderSignup(container) {
   container.innerHTML = `
@@ -43,7 +42,7 @@ export function renderSignup(container) {
               type="password"
               placeholder="Password"
               autocomplete="new-password"
-              minlength="6"
+              minlength="8"
               required
             />
 
@@ -68,7 +67,10 @@ export function renderSignup(container) {
 
         </form>
 
-        <p id="signupMessage"></p>
+        <p
+          id="signupMessage"
+          class="auth-message"
+        ></p>
 
         <button
           id="loginLink"
@@ -84,19 +86,34 @@ export function renderSignup(container) {
   `;
 
   const form =
-    document.getElementById("signupForm");
+    document.getElementById(
+      "signupForm"
+    );
 
   const message =
-    document.getElementById("signupMessage");
+    document.getElementById(
+      "signupMessage"
+    );
 
   const button =
-    document.getElementById("signupButton");
+    document.getElementById(
+      "signupButton"
+    );
 
   const password =
-    document.getElementById("password");
+    document.getElementById(
+      "password"
+    );
 
   const togglePassword =
-    document.getElementById("togglePassword");
+    document.getElementById(
+      "togglePassword"
+    );
+
+  const loginLink =
+    document.getElementById(
+      "loginLink"
+    );
 
   /*
    * Show / hide password
@@ -104,25 +121,29 @@ export function renderSignup(container) {
   togglePassword.addEventListener(
     "click",
     () => {
-      const isHidden =
+      const hidden =
         password.type === "password";
 
       password.type =
-        isHidden ? "text" : "password";
+        hidden
+          ? "text"
+          : "password";
 
       togglePassword.textContent =
-        isHidden ? "🙈" : "👁️";
+        hidden
+          ? "🙈"
+          : "👁️";
 
       togglePassword.setAttribute(
         "aria-label",
-        isHidden
+        hidden
           ? "Hide password"
           : "Show password"
       );
 
       togglePassword.setAttribute(
         "title",
-        isHidden
+        hidden
           ? "Hide password"
           : "Show password"
       );
@@ -132,11 +153,13 @@ export function renderSignup(container) {
   /*
    * Go to login
    */
-  document
-    .getElementById("loginLink")
-    .addEventListener("click", () => {
-      window.location.hash = "#/login";
-    });
+  loginLink.addEventListener(
+    "click",
+    () => {
+      window.location.hash =
+        "#/login";
+    }
+  );
 
   /*
    * Create account
@@ -167,62 +190,42 @@ export function renderSignup(container) {
         "Creating account...";
 
       message.textContent = "";
-      message.className = "";
+      message.className =
+        "auth-message";
 
       try {
-        const data = await api.post(
-          "/api/auth/signup",
-          {
+        const data =
+          await signup(
             name,
             email,
-            password: passwordValue
-          }
-        );
+            passwordValue
+          );
 
         /*
-         * A real login session must exist
-         * before entering the AI chat.
+         * The backend must return an
+         * authenticated session.
          */
-        const token =
-          data?.session?.access_token;
-
-        const user =
-          data?.user;
-
-        if (!token) {
+        if (
+          !data?.session?.access_token
+        ) {
           throw new Error(
-            "Account created, but no login session was returned. Please log in."
+            "Your account was created, but automatic login was not completed. Please log in."
           );
         }
-
-        if (!user) {
-          throw new Error(
-            "Account created, but your user session was not returned."
-          );
-        }
-
-        /*
-         * Save authenticated session
-         */
-        localStorage.setItem(
-          TOKEN_KEY,
-          token
-        );
-
-        localStorage.setItem(
-          USER_KEY,
-          JSON.stringify(user)
-        );
 
         message.textContent =
-          "Account created successfully. Opening SalonePadi AI...";
+          "Account created successfully! Opening SalonePadi AI...";
 
         message.className =
-          "success-message";
+          "auth-message success-message";
 
         /*
-         * Give localStorage a moment to finish
-         * before changing the application route.
+         * auth.js has already saved:
+         *
+         * salonepadi_access_token
+         * salonepadi_user
+         *
+         * Now open the AI chat.
          */
         setTimeout(() => {
           window.location.hash =
@@ -240,7 +243,7 @@ export function renderSignup(container) {
           "Unable to create your account.";
 
         message.className =
-          "error-message";
+          "auth-message error-message";
 
         button.disabled = false;
         button.textContent =
