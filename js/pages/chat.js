@@ -9,6 +9,9 @@ import { api } from "../api.js";
 let conversationId = null;
 
 export async function renderChat(container) {
+  /*
+   * Make sure a token and user exist locally.
+   */
   if (!authenticated()) {
     window.location.hash = "#/login";
     return;
@@ -31,8 +34,14 @@ export async function renderChat(container) {
         </div>
 
         <div class="chat-user">
+
           <span>
-            ${escapeHTML(user?.name || user?.email || "User")}
+            ${escapeHTML(
+              user?.user_metadata?.name ||
+              user?.name ||
+              user?.email ||
+              "User"
+            )}
           </span>
 
           <button
@@ -42,6 +51,7 @@ export async function renderChat(container) {
           >
             Log Out
           </button>
+
         </div>
 
       </header>
@@ -103,6 +113,9 @@ export async function renderChat(container) {
   const logoutButton =
     document.getElementById("logoutButton");
 
+  /*
+   * Logout
+   */
   logoutButton.addEventListener(
     "click",
     async () => {
@@ -113,18 +126,72 @@ export async function renderChat(container) {
       try {
         await logout();
       } finally {
-        window.location.hash = "#/login";
+        window.location.hash =
+          "#/login";
       }
     }
   );
 
+  /*
+   * Verify the token with the backend
+   * before creating the conversation.
+   */
   try {
+    showStatus(
+      "Checking your session..."
+    );
+
+    await api.get(
+      "/api/auth/me"
+    );
+
+    showStatus(
+      "Starting your chat..."
+    );
+
     await createConversation();
 
     await loadMessages();
 
+    showStatus("");
+
     input.focus();
+
   } catch (error) {
+    console.error(
+      "Chat initialization error:",
+      error
+    );
+
+    /*
+     * A 401 means the token is genuinely
+     * invalid or expired.
+     */
+    if (
+      error.message?.toLowerCase().includes(
+        "session"
+      ) ||
+      error.message?.toLowerCase().includes(
+        "authentication"
+      ) ||
+      error.message?.toLowerCase().includes(
+        "invalid"
+      )
+    ) {
+      localStorage.removeItem(
+        "salonepadi_access_token"
+      );
+
+      localStorage.removeItem(
+        "salonepadi_user"
+      );
+
+      window.location.hash =
+        "#/login";
+
+      return;
+    }
+
     showStatus(
       error.message ||
       "Unable to load your chat.",
@@ -132,6 +199,9 @@ export async function renderChat(container) {
     );
   }
 
+  /*
+   * Send message
+   */
   form.addEventListener(
     "submit",
     async (event) => {
@@ -140,33 +210,43 @@ export async function renderChat(container) {
       const message =
         input.value.trim();
 
-      if (!message || !conversationId) {
+      if (
+        !message ||
+        !conversationId
+      ) {
         return;
       }
 
       input.value = "";
 
-      addMessage("user", message);
+      addMessage(
+        "user",
+        message
+      );
 
       setSending(true);
 
       try {
-        const data = await api.post(
-          `/api/chat/conversations/${conversationId}/messages`,
-          {
-            message
-          }
-        );
+        const data =
+          await api.post(
+            `/api/chat/conversations/${conversationId}/messages`,
+            {
+              message
+            }
+          );
 
         const assistantMessage =
           data.message;
 
-        if (assistantMessage?.content) {
+        if (
+          assistantMessage?.content
+        ) {
           addMessage(
             "assistant",
             assistantMessage.content
           );
         }
+
       } catch (error) {
         showStatus(
           error.message ||
@@ -180,17 +260,21 @@ export async function renderChat(container) {
     }
   );
 
+  /*
+   * Create conversation
+   */
   async function createConversation() {
-    showStatus("Starting your chat...");
+    const data =
+      await api.post(
+        "/api/chat/conversations",
+        {
+          title: "New Chat"
+        }
+      );
 
-    const data = await api.post(
-      "/api/chat/conversations",
-      {
-        title: "New Chat"
-      }
-    );
-
-    if (!data.conversation?.id) {
+    if (
+      !data.conversation?.id
+    ) {
       throw new Error(
         "The server did not return a conversation."
       );
@@ -198,22 +282,27 @@ export async function renderChat(container) {
 
     conversationId =
       data.conversation.id;
-
-    showStatus("");
   }
 
+  /*
+   * Load messages
+   */
   async function loadMessages() {
     if (!conversationId) {
       return;
     }
 
-    const data = await api.get(
-      `/api/chat/conversations/${conversationId}/messages`
-    );
+    const data =
+      await api.get(
+        `/api/chat/conversations/${conversationId}/messages`
+      );
 
     messages.innerHTML = "";
 
-    for (const message of data.messages || []) {
+    for (
+      const message of
+      data.messages || []
+    ) {
       addMessage(
         message.role,
         message.content
@@ -221,7 +310,13 @@ export async function renderChat(container) {
     }
   }
 
-  function addMessage(role, content) {
+  /*
+   * Display message
+   */
+  function addMessage(
+    role,
+    content
+  ) {
     const element =
       document.createElement("div");
 
@@ -230,45 +325,78 @@ export async function renderChat(container) {
         ? "user-message"
         : "ai-message";
 
-    if (role === "assistant") {
+    if (
+      role === "assistant"
+    ) {
       element.innerHTML = `
-        <strong>SalonePadi AI</strong>
-        <p>${escapeHTML(content)}</p>
+        <strong>
+          SalonePadi AI
+        </strong>
+
+        <p>
+          ${escapeHTML(content)}
+        </p>
       `;
     } else {
       element.innerHTML = `
-        <p>${escapeHTML(content)}</p>
+        <p>
+          ${escapeHTML(content)}
+        </p>
       `;
     }
 
-    messages.appendChild(element);
+    messages.appendChild(
+      element
+    );
 
     messages.scrollTop =
       messages.scrollHeight;
   }
 
-  function setSending(sending) {
-    input.disabled = sending;
-    sendButton.disabled = sending;
+  /*
+   * Sending state
+   */
+  function setSending(
+    sending
+  ) {
+    input.disabled =
+      sending;
+
+    sendButton.disabled =
+      sending;
 
     sendButton.textContent =
-      sending ? "Thinking..." : "Send";
+      sending
+        ? "Thinking..."
+        : "Send";
   }
 
+  /*
+   * Status message
+   */
   function showStatus(
     message,
     isError = false
   ) {
-    status.textContent = message;
+    status.textContent =
+      message;
+
     status.className =
       isError
         ? "chat-status chat-error"
         : "chat-status";
   }
 
-  function escapeHTML(value) {
+  /*
+   * Escape HTML
+   */
+  function escapeHTML(
+    value
+  ) {
     const element =
-      document.createElement("div");
+      document.createElement(
+        "div"
+      );
 
     element.textContent =
       String(value ?? "");
