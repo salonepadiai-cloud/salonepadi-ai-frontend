@@ -1,3 +1,73 @@
+/*
+|--------------------------------------------------------------------------
+| MESSAGE AUDIO BUTTON
+|--------------------------------------------------------------------------
+*/
+
+.message-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+
+.message-audio-button {
+  width: 36px;
+  height: 36px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.08);
+
+  border-radius: 50%;
+
+  background: rgba(255, 255, 255, 0.05);
+
+  color: inherit;
+
+  cursor: pointer;
+
+  font-size: 14px;
+
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease,
+    border-color 0.2s ease;
+}
+
+
+.message-audio-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+
+  transform: scale(1.05);
+}
+
+
+.message-audio-button:active {
+  transform: scale(0.95);
+}
+
+
+.message-audio-button.audio-playing {
+  background: rgba(255, 255, 255, 0.12);
+
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+
+.audio-play-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+
+.audio-stop-icon {
+  font-size: 12px;
+  line-height: 1;
+}
 /* =========================================================
    SALONEPADI AI — CHAT UI
    ========================================================= */
