@@ -10,6 +10,10 @@ import {
   createAudioButton
 } from "./chat/audio.js";
 
+import {
+  addMessage as renderMessage
+} from "./chat/messages.js";
+
 let conversationId = null;
 
 /*
