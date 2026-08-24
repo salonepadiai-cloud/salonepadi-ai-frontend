@@ -8,6 +8,12 @@ import { api } from "../api.js";
 
 let conversationId = null;
 
+/*
+|--------------------------------------------------------------------------
+| RENDER CHAT
+|--------------------------------------------------------------------------
+*/
+
 export async function renderChat(container) {
   if (!authenticated()) {
     window.location.hash = "#/login";
@@ -25,17 +31,28 @@ export async function renderChat(container) {
   container.innerHTML = `
     <main class="chat-app">
 
-      <!-- LEFT SIDEBAR -->
-      <aside id="leftSidebar" class="chat-sidebar chat-sidebar-left">
+      <!-- =====================================================
+           LEFT SIDEBAR
+           ===================================================== -->
+
+      <aside
+        id="leftSidebar"
+        class="chat-sidebar chat-sidebar-left"
+      >
 
         <div class="sidebar-header">
+
           <div class="sidebar-brand">
-            <div class="sidebar-logo">🦁</div>
+
+            <div class="sidebar-logo">
+              🦁
+            </div>
 
             <div>
               <strong>SalonePadi</strong>
               <span>AI</span>
             </div>
+
           </div>
 
           <button
@@ -46,7 +63,9 @@ export async function renderChat(container) {
           >
             ×
           </button>
+
         </div>
+
 
         <div class="sidebar-content">
 
@@ -59,23 +78,34 @@ export async function renderChat(container) {
             <span>New chat</span>
           </button>
 
+
           <div class="sidebar-section">
+
             <div class="sidebar-label">
               Recent chats
             </div>
 
             <div id="conversationList">
+
               <button
                 class="conversation-item active"
                 type="button"
               >
-                <span>💬</span>
-                <span>New conversation</span>
+                <span class="conversation-icon">
+                  💬
+                </span>
+
+                <span class="conversation-title">
+                  New conversation
+                </span>
               </button>
+
             </div>
+
           </div>
 
         </div>
+
 
         <div class="sidebar-footer">
 
@@ -88,6 +118,7 @@ export async function renderChat(container) {
             <span>Settings</span>
           </button>
 
+
           <button
             id="logoutButton"
             class="sidebar-action danger"
@@ -97,6 +128,7 @@ export async function renderChat(container) {
             <span>Log out</span>
           </button>
 
+
           <div class="sidebar-user">
 
             <div class="sidebar-user-avatar">
@@ -104,11 +136,15 @@ export async function renderChat(container) {
             </div>
 
             <div class="sidebar-user-info">
-              <strong>${escapeHTML(displayName)}</strong>
+
+              <strong>
+                ${escapeHTML(displayName)}
+              </strong>
 
               <span>
                 ${escapeHTML(user?.email || "")}
               </span>
+
             </div>
 
           </div>
@@ -118,7 +154,10 @@ export async function renderChat(container) {
       </aside>
 
 
-      <!-- MAIN CHAT -->
+      <!-- =====================================================
+           MAIN CHAT
+           ===================================================== -->
+
       <section class="chat-main">
 
         <header class="chat-header">
@@ -132,6 +171,7 @@ export async function renderChat(container) {
             ☰
           </button>
 
+
           <div class="chat-brand">
 
             <div class="chat-logo">
@@ -139,11 +179,19 @@ export async function renderChat(container) {
             </div>
 
             <div class="chat-brand-text">
-              <strong>SalonePadi AI</strong>
-              <span>Your personal AI padi</span>
+
+              <strong>
+                SalonePadi AI
+              </strong>
+
+              <span>
+                Your personal AI padi
+              </span>
+
             </div>
 
           </div>
+
 
           <button
             id="rightMenuButton"
@@ -157,7 +205,8 @@ export async function renderChat(container) {
         </header>
 
 
-        <!-- CHAT AREA -->
+        <!-- CHAT CONTENT -->
+
         <section class="chat-content">
 
           <div
@@ -174,6 +223,7 @@ export async function renderChat(container) {
 
 
         <!-- COMPOSER -->
+
         <div class="composer-area">
 
           <form
@@ -204,8 +254,10 @@ export async function renderChat(container) {
 
           </form>
 
+
           <div class="composer-note">
-            SalonePadi AI can make mistakes. Check important information.
+            SalonePadi AI can make mistakes.
+            Check important information.
           </div>
 
         </div>
@@ -213,7 +265,10 @@ export async function renderChat(container) {
       </section>
 
 
-      <!-- RIGHT SIDEBAR -->
+      <!-- =====================================================
+           RIGHT SIDEBAR
+           ===================================================== -->
+
       <aside
         id="rightSidebar"
         class="chat-sidebar chat-sidebar-right"
@@ -221,7 +276,9 @@ export async function renderChat(container) {
 
         <div class="right-sidebar-header">
 
-          <strong>Profile</strong>
+          <strong>
+            Profile
+          </strong>
 
           <button
             id="closeRightSidebar"
@@ -234,13 +291,16 @@ export async function renderChat(container) {
 
         </div>
 
+
         <div class="profile-card">
 
           <div class="profile-avatar">
             🦁
           </div>
 
-          <h2>${escapeHTML(displayName)}</h2>
+          <h2>
+            ${escapeHTML(displayName)}
+          </h2>
 
           <p>
             ${escapeHTML(user?.email || "")}
@@ -248,11 +308,13 @@ export async function renderChat(container) {
 
         </div>
 
+
         <div class="right-section">
 
           <div class="sidebar-label">
             Account
           </div>
+
 
           <button
             id="profileButton"
@@ -262,6 +324,7 @@ export async function renderChat(container) {
             <span>👤</span>
             <span>Profile</span>
           </button>
+
 
           <button
             id="settingsButtonRight"
@@ -273,6 +336,7 @@ export async function renderChat(container) {
           </button>
 
         </div>
+
 
         <div class="right-section">
 
@@ -291,6 +355,7 @@ export async function renderChat(container) {
 
 
       <!-- MOBILE OVERLAY -->
+
       <div
         id="sidebarOverlay"
         class="sidebar-overlay"
@@ -299,6 +364,12 @@ export async function renderChat(container) {
     </main>
   `;
 
+
+  /*
+  |--------------------------------------------------------------------------
+  | ELEMENTS
+  |--------------------------------------------------------------------------
+  */
 
   const messages =
     document.getElementById("messages");
@@ -326,8 +397,10 @@ export async function renderChat(container) {
 
 
   /*
-   * SIDEBARS
-   */
+  |--------------------------------------------------------------------------
+  | SIDEBARS
+  |--------------------------------------------------------------------------
+  */
 
   function closeSidebars() {
     leftSidebar.classList.remove("open");
@@ -335,12 +408,15 @@ export async function renderChat(container) {
     overlay.classList.remove("show");
   }
 
+
   function openSidebar(side) {
     closeSidebars();
 
     if (side === "left") {
       leftSidebar.classList.add("open");
-    } else {
+    }
+
+    if (side === "right") {
       rightSidebar.classList.add("open");
     }
 
@@ -350,26 +426,34 @@ export async function renderChat(container) {
 
   document
     .getElementById("leftMenuButton")
-    .addEventListener("click", () => {
-      openSidebar("left");
-    });
+    .addEventListener(
+      "click",
+      () => openSidebar("left")
+    );
 
 
   document
     .getElementById("rightMenuButton")
-    .addEventListener("click", () => {
-      openSidebar("right");
-    });
+    .addEventListener(
+      "click",
+      () => openSidebar("right")
+    );
 
 
   document
     .getElementById("closeLeftSidebar")
-    .addEventListener("click", closeSidebars);
+    .addEventListener(
+      "click",
+      closeSidebars
+    );
 
 
   document
     .getElementById("closeRightSidebar")
-    .addEventListener("click", closeSidebars);
+    .addEventListener(
+      "click",
+      closeSidebars
+    );
 
 
   overlay.addEventListener(
@@ -379,8 +463,10 @@ export async function renderChat(container) {
 
 
   /*
-   * NEW CHAT
-   */
+  |--------------------------------------------------------------------------
+  | NEW CHAT
+  |--------------------------------------------------------------------------
+  */
 
   document
     .getElementById("newChatButton")
@@ -396,7 +482,9 @@ export async function renderChat(container) {
 
         try {
 
-          showStatus("Starting a new chat...");
+          showStatus(
+            "Starting a new chat..."
+          );
 
           await createConversation();
 
@@ -406,6 +494,11 @@ export async function renderChat(container) {
 
         } catch (error) {
 
+          console.error(
+            "New chat error:",
+            error
+          );
+
           showStatus(
             error.message ||
             "Unable to start a new chat.",
@@ -413,13 +506,16 @@ export async function renderChat(container) {
           );
 
         }
+
       }
     );
 
 
   /*
-   * SETTINGS / PROFILE
-   */
+  |--------------------------------------------------------------------------
+  | SETTINGS / PROFILE
+  |--------------------------------------------------------------------------
+  */
 
   for (
     const id of [
@@ -448,8 +544,10 @@ export async function renderChat(container) {
 
 
   /*
-   * LOGOUT
-   */
+  |--------------------------------------------------------------------------
+  | LOGOUT
+  |--------------------------------------------------------------------------
+  */
 
   document
     .getElementById("logoutButton")
@@ -465,11 +563,21 @@ export async function renderChat(container) {
         button.disabled = true;
 
         button.innerHTML =
-          "<span>⏳</span><span>Logging out...</span>";
+          `
+            <span>⏳</span>
+            <span>Logging out...</span>
+          `;
 
         try {
 
           await logout();
+
+        } catch (error) {
+
+          console.error(
+            "Logout error:",
+            error
+          );
 
         } finally {
 
@@ -483,8 +591,10 @@ export async function renderChat(container) {
 
 
   /*
-   * TEXTAREA
-   */
+  |--------------------------------------------------------------------------
+  | TEXTAREA AUTO RESIZE
+  |--------------------------------------------------------------------------
+  */
 
   input.addEventListener(
     "input",
@@ -503,12 +613,14 @@ export async function renderChat(container) {
 
 
   /*
-   * ENTER TO SEND
-   */
+  |--------------------------------------------------------------------------
+  | ENTER TO SEND
+  |--------------------------------------------------------------------------
+  */
 
   input.addEventListener(
     "keydown",
-    (event) => {
+    event => {
 
       if (
         event.key === "Enter" &&
@@ -526,8 +638,10 @@ export async function renderChat(container) {
 
 
   /*
-   * LOAD CHAT
-   */
+  |--------------------------------------------------------------------------
+  | INITIALIZE CHAT
+  |--------------------------------------------------------------------------
+  */
 
   try {
 
@@ -535,19 +649,25 @@ export async function renderChat(container) {
       "Checking your session..."
     );
 
+
     await api.get(
       "/api/auth/me"
     );
+
 
     showStatus(
       "Starting your chat..."
     );
 
+
     await createConversation();
+
 
     await loadMessages();
 
+
     showStatus("");
+
 
     input.focus();
 
@@ -558,8 +678,9 @@ export async function renderChat(container) {
       error
     );
 
+
     if (
-      /session|authentication|invalid|expired/i
+      /session|authentication|invalid|expired|unauthorized/i
         .test(
           error.message || ""
         )
@@ -572,6 +693,7 @@ export async function renderChat(container) {
 
     }
 
+
     showStatus(
       error.message ||
       "Unable to load your chat.",
@@ -582,17 +704,21 @@ export async function renderChat(container) {
 
 
   /*
-   * SEND MESSAGE
-   */
+  |--------------------------------------------------------------------------
+  | SEND MESSAGE
+  |--------------------------------------------------------------------------
+  */
 
   form.addEventListener(
     "submit",
-    async (event) => {
+    async event => {
 
       event.preventDefault();
 
+
       const message =
         input.value.trim();
+
 
       if (
         !message ||
@@ -601,16 +727,21 @@ export async function renderChat(container) {
         return;
       }
 
+
       input.value = "";
 
-      input.style.height = "auto";
+      input.style.height =
+        "auto";
+
 
       addMessage(
         "user",
         message
       );
 
+
       setSending(true);
+
 
       try {
 
@@ -622,8 +753,9 @@ export async function renderChat(container) {
             }
           );
 
+
         if (
-          data.message?.content
+          data?.message?.content
         ) {
 
           addMessage(
@@ -631,9 +763,31 @@ export async function renderChat(container) {
             data.message.content
           );
 
+        } else if (
+          data?.content
+        ) {
+
+          addMessage(
+            "assistant",
+            data.content
+          );
+
+        } else {
+
+          showStatus(
+            "The AI server returned an empty response.",
+            true
+          );
+
         }
 
       } catch (error) {
+
+        console.error(
+          "Send message error:",
+          error
+        );
+
 
         showStatus(
           error.message ||
@@ -654,8 +808,10 @@ export async function renderChat(container) {
 
 
   /*
-   * CREATE CONVERSATION
-   */
+  |--------------------------------------------------------------------------
+  | CREATE CONVERSATION
+  |--------------------------------------------------------------------------
+  */
 
   async function createConversation() {
 
@@ -667,8 +823,9 @@ export async function renderChat(container) {
         }
       );
 
+
     if (
-      !data.conversation?.id
+      !data?.conversation?.id
     ) {
 
       throw new Error(
@@ -677,6 +834,7 @@ export async function renderChat(container) {
 
     }
 
+
     conversationId =
       data.conversation.id;
 
@@ -684,8 +842,10 @@ export async function renderChat(container) {
 
 
   /*
-   * LOAD MESSAGES
-   */
+  |--------------------------------------------------------------------------
+  | LOAD MESSAGES
+  |--------------------------------------------------------------------------
+  */
 
   async function loadMessages() {
 
@@ -693,16 +853,19 @@ export async function renderChat(container) {
       return;
     }
 
+
     const data =
       await api.get(
         `/api/chat/conversations/${conversationId}/messages`
       );
 
+
     messages.innerHTML = "";
+
 
     for (
       const message of
-      data.messages || []
+      data?.messages || []
     ) {
 
       addMessage(
@@ -716,8 +879,10 @@ export async function renderChat(container) {
 
 
   /*
-   * DISPLAY MESSAGE
-   */
+  |--------------------------------------------------------------------------
+  | ADD MESSAGE
+  |--------------------------------------------------------------------------
+  */
 
   function addMessage(
     role,
@@ -728,6 +893,7 @@ export async function renderChat(container) {
       document.createElement(
         "div"
       );
+
 
     row.className =
       role === "user"
@@ -740,8 +906,10 @@ export async function renderChat(container) {
         "div"
       );
 
+
     avatar.className =
       "message-avatar";
+
 
     avatar.textContent =
       role === "user"
@@ -754,13 +922,17 @@ export async function renderChat(container) {
         "div"
       );
 
+
     bubble.className =
       role === "user"
         ? "message-bubble user-message"
         : "message-bubble ai-message";
 
 
-    if (role === "assistant") {
+    if (
+      role === "assistant" ||
+      role === "ai"
+    ) {
 
       bubble.innerHTML = `
         <div class="message-name">
@@ -788,15 +960,20 @@ export async function renderChat(container) {
       bubble
     );
 
-    messages.appendChild(row);
+
+    messages.appendChild(
+      row
+    );
+
 
     /*
-     * Activate copy buttons after inserting
-     * the message into the DOM.
+     * Code copy buttons
      */
 
     bubble
-      .querySelectorAll(".code-copy-button")
+      .querySelectorAll(
+        ".code-copy-button"
+      )
       .forEach(button => {
 
         button.addEventListener(
@@ -807,44 +984,65 @@ export async function renderChat(container) {
               button
                 .closest(".code-block")
                 ?.querySelector("code")
-                ?.textContent || "";
+                ?.textContent ||
+              "";
+
 
             try {
 
-              await navigator.clipboard.writeText(
+              await copyText(
                 code
               );
+
 
               const original =
                 button.textContent;
 
+
               button.textContent =
                 "Copied ✓";
+
 
               button.classList.add(
                 "copied"
               );
 
-              setTimeout(() => {
 
-                button.textContent =
-                  original;
+              setTimeout(
+                () => {
 
-                button.classList.remove(
-                  "copied"
-                );
+                  button.textContent =
+                    original;
 
-              }, 1600);
+                  button.classList.remove(
+                    "copied"
+                  );
+
+                },
+                1600
+              );
 
             } catch (error) {
 
               console.warn(
-                "Unable to copy code:",
+                "Copy failed:",
                 error
               );
 
+
               button.textContent =
                 "Copy failed";
+
+
+              setTimeout(
+                () => {
+
+                  button.textContent =
+                    "Copy";
+
+                },
+                1600
+              );
 
             }
 
@@ -854,449 +1052,531 @@ export async function renderChat(container) {
       });
 
 
-    messages.scrollTo({
-      top: messages.scrollHeight,
-      behavior: "smooth"
-    });
-
-  }
-
-
-function formatAIText(value) {
-  let text = String(value ?? "");
-
-  /*
-   * Protect code blocks before escaping HTML.
-   */
-  const codeBlocks = [];
-
-  text = text.replace(
-    /```([\w+-]*)\n?([\s\S]*?)```/g,
-    (match, language, code) => {
-      const index = codeBlocks.length;
-
-      let highlightedCode;
-
-      const cleanCode = code
-        .replace(/\r\n/g, "\n")
-        .replace(/\r/g, "\n")
-        .trim();
-
-      try {
-        if (
-          window.hljs &&
-          language &&
-          hljs.getLanguage(language)
-        ) {
-          highlightedCode =
-            hljs.highlight(
-              cleanCode,
-              {
-                language
-              }
-            ).value;
-        } else if (window.hljs) {
-          highlightedCode =
-            hljs.highlightAuto(
-              cleanCode
-            ).value;
-        } else {
-          highlightedCode =
-            escapeHTML(cleanCode);
-        }
-      } catch (error) {
-        console.warn(
-          "Code highlighting failed:",
-          error
-        );
-
-        highlightedCode =
-          escapeHTML(cleanCode);
-      }
-
-      const languageName =
-        language || "code";
-
-      codeBlocks.push(`
-        <div class="code-block">
-
-          <div class="code-header">
-
-            <span class="code-language">
-              ${escapeHTML(languageName)}
-            </span>
-
-            <button
-              type="button"
-              class="copy-code-button"
-              data-code-index="${index}"
-            >
-              Copy
-            </button>
-
-          </div>
-
-          <pre><code>${highlightedCode}</code></pre>
-
-        </div>
-      `);
-
-      return `___SALONEPADI_CODE_${index}___`;
-    }
-  );
-
-  /*
-   * Escape normal text.
-   */
-  text = escapeHTML(text);
-
-  /*
-   * Bold.
-   */
-  text = text.replace(
-    /\*\*([^*]+)\*\*/g,
-    "<strong>$1</strong>"
-  );
-
-  /*
-   * Inline code.
-   */
-  text = text.replace(
-    /`([^`]+)`/g,
-    "<code class=\"inline-code\">$1</code>"
-  );
-
-  /*
-   * Headings.
-   */
-  text = text.replace(
-    /^### (.+)$/gm,
-    "<h4>$1</h4>"
-  );
-
-  text = text.replace(
-    /^## (.+)$/gm,
-    "<h3>$1</h3>"
-  );
-
-  text = text.replace(
-    /^# (.+)$/gm,
-    "<h2>$1</h2>"
-  );
-
-  /*
-   * Bullet points.
-   */
-  text = text.replace(
-    /^[•*-] (.+)$/gm,
-    "<div class=\"ai-list-item\">• $1</div>"
-  );
-
-  /*
-   * Numbered lists.
-   */
-  text = text.replace(
-    /^(\d+)\. (.+)$/gm,
-    "<div class=\"ai-list-item\">$1. $2</div>"
-  );
-
-  /*
-   * Line breaks.
-   */
-  text = text.replace(
-    /\n/g,
-    "<br>"
-  );
-
-  /*
-   * Restore code blocks.
-   */
-  codeBlocks.forEach(
-    (block, index) => {
-      text = text.replace(
-        `___SALONEPADI_CODE_${index}___`,
-        block
-      );
-    }
-  );
-
-  return text;
-}
-
-
     /*
-     * Escape all remaining normal text.
+     * Scroll to newest message
      */
 
-    text =
-      escapeHTML(text);
+    requestAnimationFrame(
+      () => {
 
-
-    /*
-     * Inline code.
-     */
-
-    text =
-      text.replace(
-        /`([^`\n]+)`/g,
-        "<code class=\"inline-code\">$1</code>"
-      );
-
-
-    /*
-     * Bold.
-     */
-
-    text =
-      text.replace(
-        /\*\*([\s\S]*?)\*\*/g,
-        "<strong>$1</strong>"
-      );
-
-
-    /*
-     * Italic.
-     */
-
-    text =
-      text.replace(
-        /(^|[^*])\*([^*\n]+)\*(?!\*)/g,
-        "$1<em>$2</em>"
-      );
-
-
-    /*
-     * Headings.
-     */
-
-    text =
-      text.replace(
-        /^### (.+)$/gm,
-        "<h4>$1</h4>"
-      );
-
-    text =
-      text.replace(
-        /^## (.+)$/gm,
-        "<h3>$1</h3>"
-      );
-
-    text =
-      text.replace(
-        /^# (.+)$/gm,
-        "<h2>$1</h2>"
-      );
-
-
-    /*
-     * Unordered lists.
-     */
-
-    text =
-      text.replace(
-        /^[ \t]*[-*] (.+)$/gm,
-        '<div class="markdown-list-item"><span>•</span><span>$1</span></div>'
-      );
-
-
-    /*
-     * Numbered lists.
-     */
-
-    text =
-      text.replace(
-        /^[ \t]*(\d+)\. (.+)$/gm,
-        '<div class="markdown-number-item"><span>$1.</span><span>$2</span></div>'
-      );
-
-
-    /*
-     * Links.
-     *
-     * Only allow normal HTTP/HTTPS links.
-     */
-
-    text =
-      text.replace(
-        /https?:\/\/[^\s<]+/g,
-        url => {
-
-          const safeURL =
-            escapeAttribute(url);
-
-          return `
-            <a
-              class="ai-link"
-              href="${safeURL}"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              ${escapeHTML(url)}
-            </a>
-          `;
-
-        }
-      );
-
-
-    /*
-     * Preserve line breaks.
-     */
-
-    text =
-      text.replace(
-        /\n/g,
-        "<br>"
-      );
-
-
-    /*
-     * Restore code blocks.
-     */
-
-    codeBlocks.forEach(
-      (
-        block,
-        index
-      ) => {
-
-        const placeholder =
-          `@@CODE_BLOCK_${index}@@`;
-
-        const escapedCode =
-          escapeHTML(
-            block.code
-          );
-
-        const codeHTML = `
-          <div class="code-block">
-
-            <div class="code-header">
-
-              <span class="code-language">
-                ${escapeHTML(
-                  block.language
-                )}
-              </span>
-
-              <button
-                type="button"
-                class="code-copy-button"
-                aria-label="Copy code"
-              >
-                Copy
-              </button>
-
-            </div>
-
-            <pre><code>${escapedCode}</code></pre>
-
-          </div>
-        `;
-
-        text =
-          text.replace(
-            placeholder,
-            codeHTML
-          );
+        messages.scrollTo({
+          top:
+            messages.scrollHeight,
+          behavior:
+            "smooth"
+        });
 
       }
     );
 
-
-    return text;
-
   }
 
 
   /*
-   * SAFE HTML ESCAPE
-   */
-
-  function escapeHTML(value) {
-
-    const element =
-      document.createElement(
-        "div"
-      );
-
-    element.textContent =
-      String(
-        value ?? ""
-      );
-
-    return element.innerHTML;
-
-  }
-
-
-  /*
-   * SAFE ATTRIBUTE ESCAPE
-   */
-
-  function escapeAttribute(value) {
-
-    return String(
-      value ?? ""
-    )
-      .replace(/&/g, "&amp;")
-      .replace(/"/g, "&quot;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;");
-
-  }
-
-
-  /*
-   * SENDING STATE
-   */
+  |--------------------------------------------------------------------------
+  | SEND STATE
+  |--------------------------------------------------------------------------
+  */
 
   function setSending(
     sending
   ) {
 
-    input.disabled =
-      sending;
-
     sendButton.disabled =
       sending;
 
+    input.disabled =
+      sending;
+
+
     if (sending) {
 
-      sendButton.innerHTML = `
-        <span class="typing-dots">
-          <i></i>
-          <i></i>
-          <i></i>
-        </span>
-      `;
+      sendButton.innerHTML =
+        `
+          <span class="typing-dots">
+            <i></i>
+            <i></i>
+            <i></i>
+          </span>
+        `;
+
+      showStatus(
+        "SalonePadi AI is thinking..."
+      );
 
     } else {
 
       sendButton.textContent =
         "↑";
 
+      showStatus("");
+
     }
 
   }
 
 
   /*
-   * STATUS
-   */
+  |--------------------------------------------------------------------------
+  | STATUS
+  |--------------------------------------------------------------------------
+  */
 
   function showStatus(
     message,
-    isError = false
+    error = false
   ) {
 
     status.textContent =
-      message;
+      message || "";
 
-    status.className =
-      isError
-        ? "chat-status chat-error"
-        : "chat-status";
+
+    status.classList.toggle(
+      "chat-error",
+      Boolean(error)
+    );
 
   }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| AI TEXT FORMATTER
+|--------------------------------------------------------------------------
+|
+| Handles:
+|
+|   # headings
+|   **bold**
+|   *italic*
+|   `inline code`
+|   bullet lists
+|   numbered lists
+|   links
+|   fenced code blocks
+|
+*/
+
+function formatAIText(
+  value
+) {
+
+  let text =
+    String(value ?? "");
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Extract code blocks first
+  |--------------------------------------------------------------------------
+  */
+
+  const codeBlocks = [];
+
+
+  text =
+    text.replace(
+      /```([a-zA-Z0-9_+#.-]*)[ \t]*\n?([\s\S]*?)```/g,
+      (
+        match,
+        language,
+        code
+      ) => {
+
+        const index =
+          codeBlocks.length;
+
+
+        const cleanCode =
+          String(code)
+            .replace(
+              /\r\n/g,
+              "\n"
+            )
+            .replace(
+              /\r/g,
+              "\n"
+            )
+            .replace(
+              /^\n/,
+              ""
+            )
+            .replace(
+              /\n$/,
+              ""
+            );
+
+
+        codeBlocks.push({
+          language:
+            language ||
+            "code",
+
+          code:
+            cleanCode
+        });
+
+
+        return `@@SALONEPADI_CODE_${index}@@`;
+
+      }
+    );
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Escape normal text
+  |--------------------------------------------------------------------------
+  */
+
+  text =
+    escapeHTML(text);
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Bold
+  |--------------------------------------------------------------------------
+  */
+
+  text =
+    text.replace(
+      /\*\*([\s\S]*?)\*\*/g,
+      "<strong>$1</strong>"
+    );
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Italic
+  |--------------------------------------------------------------------------
+  */
+
+  text =
+    text.replace(
+      /(^|[^*])\*([^*\n]+)\*(?!\*)/g,
+      "$1<em>$2</em>"
+    );
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Inline code
+  |--------------------------------------------------------------------------
+  */
+
+  text =
+    text.replace(
+      /`([^`\n]+)`/g,
+      '<code class="inline-code">$1</code>'
+    );
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Headings
+  |--------------------------------------------------------------------------
+  */
+
+  text =
+    text.replace(
+      /^### (.+)$/gm,
+      "<h4>$1</h4>"
+    );
+
+
+  text =
+    text.replace(
+      /^## (.+)$/gm,
+      "<h3>$1</h3>"
+    );
+
+
+  text =
+    text.replace(
+      /^# (.+)$/gm,
+      "<h2>$1</h2>"
+    );
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Bullet lists
+  |--------------------------------------------------------------------------
+  */
+
+  text =
+    text.replace(
+      /^[ \t]*[-*•] (.+)$/gm,
+      `
+        <div class="markdown-list-item">
+          <span>•</span>
+          <span>$1</span>
+        </div>
+      `
+    );
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Numbered lists
+  |--------------------------------------------------------------------------
+  */
+
+  text =
+    text.replace(
+      /^[ \t]*(\d+)\. (.+)$/gm,
+      `
+        <div class="markdown-number-item">
+          <span>$1.</span>
+          <span>$2</span>
+        </div>
+      `
+    );
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | HTTP / HTTPS links
+  |--------------------------------------------------------------------------
+  */
+
+  text =
+    text.replace(
+      /https?:\/\/[^\s<]+/g,
+      url => {
+
+        const cleanURL =
+          url.replace(
+            /[),.;!?]+$/,
+            ""
+          );
+
+
+        const trailing =
+          url.slice(
+            cleanURL.length
+          );
+
+
+        return `
+          <a
+            class="ai-link"
+            href="${escapeAttribute(cleanURL)}"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            ${escapeHTML(cleanURL)}
+          </a>${escapeHTML(trailing)}
+        `;
+
+      }
+    );
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Line breaks
+  |--------------------------------------------------------------------------
+  */
+
+  text =
+    text.replace(
+      /\n/g,
+      "<br>"
+    );
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Restore code blocks
+  |--------------------------------------------------------------------------
+  */
+
+  codeBlocks.forEach(
+    (
+      block,
+      index
+    ) => {
+
+      const placeholder =
+        `@@SALONEPADI_CODE_${index}@@`;
+
+
+      const codeHTML = `
+        <div class="code-block">
+
+          <div class="code-header">
+
+            <span class="code-language">
+              ${escapeHTML(
+                block.language
+              )}
+            </span>
+
+            <button
+              type="button"
+              class="code-copy-button"
+              aria-label="Copy code"
+            >
+              Copy
+            </button>
+
+          </div>
+
+          <pre><code>${escapeHTML(
+            block.code
+          )}</code></pre>
+
+        </div>
+      `;
+
+
+      text =
+        text.replace(
+          placeholder,
+          codeHTML
+        );
+
+    }
+  );
+
+
+  return text;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| COPY TEXT
+|--------------------------------------------------------------------------
+*/
+
+async function copyText(
+  text
+) {
+
+  if (
+    navigator.clipboard &&
+    window.isSecureContext
+  ) {
+
+    await navigator.clipboard.writeText(
+      text
+    );
+
+    return;
+
+  }
+
+
+  /*
+   * Fallback for browsers where
+   * Clipboard API is unavailable.
+   */
+
+  const textarea =
+    document.createElement(
+      "textarea"
+    );
+
+
+  textarea.value =
+    text;
+
+
+  textarea.style.position =
+    "fixed";
+
+  textarea.style.left =
+    "-9999px";
+
+  textarea.style.top =
+    "-9999px";
+
+
+  document.body.appendChild(
+    textarea
+  );
+
+
+  textarea.focus();
+
+  textarea.select();
+
+
+  const successful =
+    document.execCommand(
+      "copy"
+    );
+
+
+  textarea.remove();
+
+
+  if (!successful) {
+
+    throw new Error(
+      "Clipboard access was denied."
+    );
+
+  }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| SAFE HTML ESCAPE
+|--------------------------------------------------------------------------
+*/
+
+function escapeHTML(
+  value
+) {
+
+  return String(
+    value ?? ""
+  )
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| SAFE ATTRIBUTE ESCAPE
+|--------------------------------------------------------------------------
+*/
+
+function escapeAttribute(
+  value
+) {
+
+  return escapeHTML(
+    value
+  );
+
 }
