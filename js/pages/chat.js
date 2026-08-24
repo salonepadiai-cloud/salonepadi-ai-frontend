@@ -862,61 +862,166 @@ export async function renderChat(container) {
   }
 
 
+function formatAIText(value) {
+  let text = String(value ?? "");
+
   /*
-   * MARKDOWN / AI FORMATTER
+   * Protect code blocks before escaping HTML.
    */
+  const codeBlocks = [];
 
-  function formatAIText(value) {
+  text = text.replace(
+    /```([\w+-]*)\n?([\s\S]*?)```/g,
+    (match, language, code) => {
+      const index = codeBlocks.length;
 
-    if (!value) {
-      return "";
-    }
+      let highlightedCode;
 
-    let text =
-      String(value);
+      const cleanCode = code
+        .replace(/\r\n/g, "\n")
+        .replace(/\r/g, "\n")
+        .trim();
 
-    /*
-     * Extract fenced code blocks first.
-     *
-     * Example:
-     *
-     * ```javascript
-     * const app = express();
-     * ```
-     */
-
-    const codeBlocks = [];
-
-    text =
-      text.replace(
-        /```([a-zA-Z0-9_+#.-]+)?[ \t]*\n?([\s\S]*?)```/g,
-        (
-          match,
-          language,
-          code
-        ) => {
-
-          const id =
-            codeBlocks.length;
-
-          const cleanLanguage =
-            language
-              ? language.trim()
-              : "code";
-
-          codeBlocks.push({
-            language:
-              cleanLanguage,
-            code:
-              code
-                .replace(/^\n/, "")
-                .replace(/\n$/, "")
-          });
-
-          return `@@CODE_BLOCK_${id}@@`;
-
+      try {
+        if (
+          window.hljs &&
+          language &&
+          hljs.getLanguage(language)
+        ) {
+          highlightedCode =
+            hljs.highlight(
+              cleanCode,
+              {
+                language
+              }
+            ).value;
+        } else if (window.hljs) {
+          highlightedCode =
+            hljs.highlightAuto(
+              cleanCode
+            ).value;
+        } else {
+          highlightedCode =
+            escapeHTML(cleanCode);
         }
+      } catch (error) {
+        console.warn(
+          "Code highlighting failed:",
+          error
+        );
+
+        highlightedCode =
+          escapeHTML(cleanCode);
+      }
+
+      const languageName =
+        language || "code";
+
+      codeBlocks.push(`
+        <div class="code-block">
+
+          <div class="code-header">
+
+            <span class="code-language">
+              ${escapeHTML(languageName)}
+            </span>
+
+            <button
+              type="button"
+              class="copy-code-button"
+              data-code-index="${index}"
+            >
+              Copy
+            </button>
+
+          </div>
+
+          <pre><code>${highlightedCode}</code></pre>
+
+        </div>
+      `);
+
+      return `___SALONEPADI_CODE_${index}___`;
+    }
+  );
+
+  /*
+   * Escape normal text.
+   */
+  text = escapeHTML(text);
+
+  /*
+   * Bold.
+   */
+  text = text.replace(
+    /\*\*([^*]+)\*\*/g,
+    "<strong>$1</strong>"
+  );
+
+  /*
+   * Inline code.
+   */
+  text = text.replace(
+    /`([^`]+)`/g,
+    "<code class=\"inline-code\">$1</code>"
+  );
+
+  /*
+   * Headings.
+   */
+  text = text.replace(
+    /^### (.+)$/gm,
+    "<h4>$1</h4>"
+  );
+
+  text = text.replace(
+    /^## (.+)$/gm,
+    "<h3>$1</h3>"
+  );
+
+  text = text.replace(
+    /^# (.+)$/gm,
+    "<h2>$1</h2>"
+  );
+
+  /*
+   * Bullet points.
+   */
+  text = text.replace(
+    /^[•*-] (.+)$/gm,
+    "<div class=\"ai-list-item\">• $1</div>"
+  );
+
+  /*
+   * Numbered lists.
+   */
+  text = text.replace(
+    /^(\d+)\. (.+)$/gm,
+    "<div class=\"ai-list-item\">$1. $2</div>"
+  );
+
+  /*
+   * Line breaks.
+   */
+  text = text.replace(
+    /\n/g,
+    "<br>"
+  );
+
+  /*
+   * Restore code blocks.
+   */
+  codeBlocks.forEach(
+    (block, index) => {
+      text = text.replace(
+        `___SALONEPADI_CODE_${index}___`,
+        block
       );
+    }
+  );
+
+  return text;
+}
 
 
     /*
