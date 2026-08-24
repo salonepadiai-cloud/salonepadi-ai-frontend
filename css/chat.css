@@ -2,40 +2,14 @@
    SALONEPADI AI — CHAT UI
    ========================================================= */
 
-/* =========================================================
-   BASE CHAT ELEMENTS
-   ========================================================= */
-
 .chat-app,
 .chat-app * {
   box-sizing: border-box;
 }
 
-.chat-app button,
-.chat-app input,
-.chat-app textarea {
-  font: inherit;
-}
-
-.chat-app button {
-  cursor: pointer;
-}
-
-.chat-app button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
-}
-
-/* =========================================================
-   CHAT APPLICATION
-   ========================================================= */
-
 .chat-app {
   position: fixed;
   inset: 0;
-
-  width: 100%;
-  height: 100dvh;
 
   display: grid;
 
@@ -63,16 +37,16 @@
 
 .chat-sidebar {
   position: relative;
-
   z-index: 30;
 
   display: flex;
   flex-direction: column;
 
-  min-width: 0;
-
   background:
     rgba(8, 15, 31, 0.97);
+
+  border-color:
+    rgba(148, 163, 184, 0.12);
 
   backdrop-filter: blur(18px);
 }
@@ -95,8 +69,6 @@
 .right-sidebar-header {
   height: 72px;
 
-  flex: 0 0 72px;
-
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -110,17 +82,12 @@
 .sidebar-brand {
   display: flex;
   align-items: center;
-
   gap: 10px;
-
-  min-width: 0;
 }
 
 .sidebar-logo {
   width: 38px;
   height: 38px;
-
-  flex: 0 0 38px;
 
   display: grid;
   place-items: center;
@@ -137,19 +104,11 @@
 
 .sidebar-brand strong {
   display: block;
-
-  color: #f8fafc;
-
   font-size: 14px;
 }
 
 .sidebar-brand span {
-  display: block;
-
-  margin-top: 2px;
-
   color: #64748b;
-
   font-size: 11px;
 }
 
@@ -161,7 +120,6 @@
   place-items: center;
 
   border: 0;
-
   border-radius: 10px;
 
   background: transparent;
@@ -169,8 +127,6 @@
   color: #94a3b8;
 
   font-size: 25px;
-
-  transition: 0.18s;
 }
 
 .sidebar-close:hover {
@@ -218,16 +174,13 @@
   border-color:
     rgba(59, 130, 246, 0.45);
 
-  transform: translateY(-1px);
+  transform:
+    translateY(-1px);
 }
 
 .new-chat-icon {
   font-size: 24px;
 }
-
-/* =========================================================
-   SIDEBAR SECTIONS
-   ========================================================= */
 
 .sidebar-section {
   padding-top: 18px;
@@ -239,7 +192,6 @@
   color: #64748b;
 
   font-size: 11px;
-
   font-weight: 800;
 
   letter-spacing: 0.08em;
@@ -261,7 +213,8 @@
 
   border-radius: 11px;
 
-  padding: 9px 11px;
+  padding:
+    9px 11px;
 
   background: transparent;
 
@@ -325,10 +278,10 @@
   width: 38px;
   height: 38px;
 
-  flex: 0 0 38px;
-
   display: grid;
   place-items: center;
+
+  flex: 0 0 38px;
 
   border-radius: 12px;
 
@@ -346,8 +299,6 @@
 }
 
 .sidebar-user-info strong {
-  color: #f8fafc;
-
   font-size: 13px;
 
   overflow: hidden;
@@ -380,7 +331,7 @@
 
   min-width: 0;
 
-  height: 100%;
+  height: 100vh;
 
   display: flex;
   flex-direction: column;
@@ -392,17 +343,14 @@
       transparent 32%
     ),
     #020617;
-
-  overflow: hidden;
 }
 
 /* =========================================================
-   CHAT HEADER
+   HEADER
    ========================================================= */
 
 .chat-header {
   height: 72px;
-
   flex: 0 0 72px;
 
   display: flex;
@@ -433,8 +381,6 @@
   width: 42px;
   height: 42px;
 
-  flex: 0 0 42px;
-
   display: grid;
   place-items: center;
 
@@ -451,13 +397,9 @@
 .chat-brand-text {
   display: flex;
   flex-direction: column;
-
-  min-width: 0;
 }
 
 .chat-brand-text strong {
-  color: #f8fafc;
-
   font-size: 15px;
 }
 
@@ -486,13 +428,10 @@
   color: #cbd5e1;
 
   font-size: 20px;
-
-  transition: 0.18s;
 }
 
 .icon-button:hover {
   background: #111827;
-
   color: #fff;
 }
 
@@ -505,17 +444,18 @@
    ========================================================= */
 
 .chat-content {
-  position: relative;
-
   flex: 1;
 
   min-height: 0;
 
   overflow: hidden;
+
+  position: relative;
 }
 
 .chat-messages {
-  width: min(900px, 100%);
+  width:
+    min(900px, 100%);
 
   height: 100%;
 
@@ -524,29 +464,15 @@
   padding:
     28px
     22px
-    160px;
+    150px;
 
   overflow-y: auto;
 
   scrollbar-width: thin;
 
   scrollbar-color:
-    #334155
+    #1e293b
     transparent;
-}
-
-.chat-messages::-webkit-scrollbar {
-  width: 7px;
-}
-
-.chat-messages::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.chat-messages::-webkit-scrollbar-thumb {
-  background: #1e293b;
-
-  border-radius: 10px;
 }
 
 .chat-messages:empty::before {
@@ -561,7 +487,8 @@
 
   max-width: 520px;
 
-  margin: 17vh auto 0;
+  margin:
+    17vh auto 0;
 
   text-align: center;
 
@@ -573,7 +500,7 @@
 }
 
 /* =========================================================
-   MESSAGE ROW
+   MESSAGES
    ========================================================= */
 
 .message-row {
@@ -585,8 +512,7 @@
   width: 100%;
 
   margin:
-    0 auto
-    24px;
+    0 auto 24px;
 }
 
 .message-row-user {
@@ -597,7 +523,8 @@
   width: 34px;
   height: 34px;
 
-  flex: 0 0 34px;
+  flex:
+    0 0 34px;
 
   display: grid;
   place-items: center;
@@ -646,18 +573,9 @@
 }
 
 .user-message {
-  background:
-    linear-gradient(
-      135deg,
-      #2563eb,
-      #1d4ed8
-    );
+  background: #2563eb;
 
   color: #fff;
-
-  box-shadow:
-    0 8px 25px
-    rgba(37, 99, 235, 0.15);
 }
 
 .message-name {
@@ -674,10 +592,13 @@
   overflow-wrap: anywhere;
 }
 
+/* =========================================================
+   NORMAL MARKDOWN
+   ========================================================= */
+
 .message-text p {
   margin:
-    0 0
-    14px;
+    0 0 14px;
 }
 
 .message-text p:last-child {
@@ -686,7 +607,6 @@
 
 .message-text strong {
   color: #fff;
-
   font-weight: 750;
 }
 
@@ -697,8 +617,7 @@
 .message-text ul,
 .message-text ol {
   margin:
-    10px 0
-    14px;
+    10px 0 14px;
 
   padding-left: 24px;
 }
@@ -711,8 +630,7 @@
 .message-text h2,
 .message-text h3 {
   margin:
-    18px 0
-    9px;
+    18px 0 9px;
 
   line-height: 1.3;
 }
@@ -748,8 +666,7 @@
 .message-text p > code,
 .message-text li > code {
   padding:
-    3px
-    7px;
+    3px 7px;
 
   border-radius: 7px;
 
@@ -763,61 +680,73 @@
 }
 
 /* =========================================================
-   CODE BLOCK
+   BEAUTIFUL CODE BLOCK
    ========================================================= */
 
 .code-block {
   position: relative;
 
+  width: 100%;
+
   margin:
-    16px 0;
+    18px 0;
 
   border:
-    1px solid rgba(148, 163, 184, 0.14);
+    1px solid rgba(148, 163, 184, 0.15);
 
   border-radius: 14px;
 
   overflow: hidden;
 
   background:
-    #020617;
+    #0b1020;
 
   box-shadow:
-    0 12px 35px
-    rgba(0, 0, 0, 0.3);
+    0 16px 45px rgba(0, 0, 0, 0.3);
 }
 
-/* =========================================================
-   CODE HEADER
-   ========================================================= */
+/* Top bar */
 
 .code-header {
-  min-height: 40px;
+  min-height: 42px;
 
   display: flex;
+
   align-items: center;
+
   justify-content: space-between;
 
   padding:
-    0
-    12px;
+    0 12px;
 
   background:
-    linear-gradient(
-      180deg,
-      rgba(30, 41, 59, 0.95),
-      rgba(15, 23, 42, 0.95)
-    );
+    #111827;
 
   border-bottom:
-    1px solid rgba(148, 163, 184, 0.1);
+    1px solid rgba(148, 163, 184, 0.12);
 }
 
-.code-language {
-  display: flex;
-  align-items: center;
+/* Mac-like dots */
 
-  gap: 7px;
+.code-header::before {
+  content: "●  ●  ●";
+
+  color: #64748b;
+
+  font-size: 9px;
+
+  letter-spacing: 2px;
+}
+
+/* Language */
+
+.code-language {
+  position: absolute;
+
+  left: 50%;
+
+  transform:
+    translateX(-50%);
 
   color: #94a3b8;
 
@@ -829,32 +758,27 @@
 
   font-size: 11px;
 
+  font-weight: 600;
+
   text-transform: lowercase;
 }
 
-.code-language::before {
-  content: "";
-
-  width: 8px;
-  height: 8px;
-
-  border-radius: 50%;
-
-  background: #22c55e;
-
-  box-shadow:
-    0 0 10px
-    rgba(34, 197, 94, 0.5);
-}
+/* Copy button */
 
 .copy-code-button {
-  border: 0;
+  position: relative;
+
+  z-index: 2;
+
+  margin-left: auto;
+
+  border:
+    1px solid rgba(148, 163, 184, 0.12);
 
   border-radius: 7px;
 
   padding:
-    6px
-    9px;
+    5px 9px;
 
   background:
     rgba(148, 163, 184, 0.08);
@@ -863,27 +787,32 @@
 
   font-size: 11px;
 
-  transition: 0.18s;
+  transition:
+    background 0.18s,
+    color 0.18s;
 }
 
 .copy-code-button:hover {
   background:
-    rgba(59, 130, 246, 0.15);
+    rgba(59, 130, 246, 0.18);
 
   color: #bfdbfe;
 }
 
-/* =========================================================
-   CODE CONTENT
-   ========================================================= */
+/* Code area */
 
 .code-block pre {
   margin: 0;
 
   padding:
-    17px;
+    18px;
+
+  max-width: 100%;
 
   overflow-x: auto;
+
+  background:
+    #0b1020;
 
   scrollbar-width: thin;
 
@@ -892,22 +821,10 @@
     transparent;
 }
 
-.code-block pre::-webkit-scrollbar {
-  height: 7px;
-}
-
-.code-block pre::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.code-block pre::-webkit-scrollbar-thumb {
-  background: #334155;
-
-  border-radius: 10px;
-}
-
 .code-block pre code {
   display: block;
+
+  min-width: max-content;
 
   color: #e2e8f0;
 
@@ -926,31 +843,13 @@
 }
 
 /* =========================================================
-   BASIC CODE COLORS
+   HIGHLIGHT.JS
    ========================================================= */
 
-.code-block .keyword {
-  color: #c084fc;
-}
+.code-block .hljs {
+  background: transparent !important;
 
-.code-block .string {
-  color: #86efac;
-}
-
-.code-block .number {
-  color: #fbbf24;
-}
-
-.code-block .comment {
-  color: #64748b;
-}
-
-.code-block .function {
-  color: #60a5fa;
-}
-
-.code-block .operator {
-  color: #f472b6;
+  padding: 0 !important;
 }
 
 /* =========================================================
@@ -981,13 +880,15 @@
 }
 
 .chat-form {
-  width: min(900px, 100%);
+  width:
+    min(900px, 100%);
 
   margin: 0 auto;
 }
 
 .composer {
   display: flex;
+
   align-items: flex-end;
 
   gap: 10px;
@@ -1003,21 +904,10 @@
     rgba(15, 23, 42, 0.92);
 
   box-shadow:
-    0 20px 60px
-    rgba(0, 0, 0, 0.38);
+    0 20px 60px rgba(0, 0, 0, 0.38);
 
-  backdrop-filter: blur(20px);
-}
-
-.composer:focus-within {
-  border-color:
-    rgba(59, 130, 246, 0.45);
-
-  box-shadow:
-    0 20px 60px
-    rgba(0, 0, 0, 0.38),
-    0 0 0 3px
-    rgba(37, 99, 235, 0.08);
+  backdrop-filter:
+    blur(20px);
 }
 
 .composer textarea {
@@ -1036,10 +926,10 @@
   outline: 0;
 
   padding:
-    12px
-    13px;
+    12px 13px;
 
-  background: transparent;
+  background:
+    transparent;
 
   color: #f8fafc;
 
@@ -1054,7 +944,8 @@
   width: 48px;
   height: 48px;
 
-  flex: 0 0 48px;
+  flex:
+    0 0 48px;
 
   display: grid;
   place-items: center;
@@ -1063,12 +954,7 @@
 
   border-radius: 15px;
 
-  background:
-    linear-gradient(
-      135deg,
-      #3b82f6,
-      #2563eb
-    );
+  background: #2563eb;
 
   color: #fff;
 
@@ -1077,35 +963,21 @@
   font-weight: 800;
 
   transition: 0.2s;
-
-  box-shadow:
-    0 8px 20px
-    rgba(37, 99, 235, 0.25);
 }
 
 .send-button:hover:not(:disabled) {
-  background:
-    linear-gradient(
-      135deg,
-      #60a5fa,
-      #3b82f6
-    );
+  background: #3b82f6;
 
   transform:
     translateY(-1px);
 }
 
-.send-button:active:not(:disabled) {
-  transform:
-    translateY(0);
-}
-
 .composer-note {
-  width: min(900px, 100%);
+  width:
+    min(900px, 100%);
 
   margin:
-    8px auto
-    0;
+    8px auto 0;
 
   text-align: center;
 
@@ -1115,13 +987,14 @@
 }
 
 /* =========================================================
-   TYPING INDICATOR
+   TYPING
    ========================================================= */
 
 .typing-dots {
   display: flex;
 
   align-items: center;
+
   justify-content: center;
 
   gap: 3px;
@@ -1178,7 +1051,6 @@
   position: absolute;
 
   left: 50%;
-
   bottom: 132px;
 
   transform:
@@ -1205,9 +1077,7 @@
 
 .profile-card {
   padding:
-    30px
-    18px
-    22px;
+    30px 18px 22px;
 
   text-align: center;
 
@@ -1220,8 +1090,7 @@
   height: 74px;
 
   margin:
-    0 auto
-    14px;
+    0 auto 14px;
 
   display: grid;
   place-items: center;
@@ -1238,10 +1107,7 @@
 
 .profile-card h2 {
   margin:
-    0 0
-    5px;
-
-  color: #f8fafc;
+    0 0 5px;
 
   font-size: 17px;
 }
@@ -1258,14 +1124,12 @@
 
 .right-section {
   padding:
-    4px
-    12px;
+    4px 12px;
 }
 
 .about-text {
   margin:
-    4px
-    10px;
+    4px 10px;
 
   color: #64748b;
 
@@ -1275,18 +1139,15 @@
 }
 
 /* =========================================================
-   MOBILE OVERLAY
+   MOBILE
    ========================================================= */
 
 .sidebar-overlay {
   display: none;
 }
 
-/* =========================================================
-   TABLET
-   ========================================================= */
-
 @media (max-width: 1100px) {
+
   .chat-app {
     grid-template-columns:
       230px
@@ -1296,18 +1157,13 @@
   .chat-sidebar-right {
     display: none;
   }
+
 }
 
-/ =========================================================
-   MOBILE
-   ========================================================= */
-
 @media (max-width: 760px) {
+
   .chat-app {
     display: block;
-
-    width: 100%;
-    height: 100dvh;
   }
 
   .chat-main {
@@ -1321,12 +1177,12 @@
     top: 0;
     bottom: 0;
 
-    width: min(84vw, 310px);
+    width:
+      min(84vw, 310px);
 
     transition:
       transform
-      0.24s
-      ease;
+      0.24s ease;
 
     box-shadow:
       0 20px 60px
@@ -1372,9 +1228,6 @@
     visibility: hidden;
 
     transition: 0.2s;
-
-    backdrop-filter:
-      blur(2px);
   }
 
   .sidebar-overlay.show {
@@ -1393,120 +1246,7 @@
     flex-basis: 64px;
 
     padding:
-      0
-      10px;
-  }
-
-  .chat-brand {
-    position: absolute;
-
-    left: 50%;
-
-    transform:
-      translateX(-50%);
-  }
-
-  .chat-brand-text span {
-    display: none;
-  }
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media (max-width: 760px) {
-  .chat-app {
-    display: block;
-
-    width: 100%;
-    height: 100dvh;
-  }
-
-  .chat-main {
-    width: 100%;
-    height: 100dvh;
-  }
-
-  .chat-sidebar {
-    position: fixed;
-
-    top: 0;
-    bottom: 0;
-
-    width: min(84vw, 310px);
-
-    transition:
-      transform
-      0.24s
-      ease;
-
-    box-shadow:
-      0 20px 60px
-      rgba(0, 0, 0, 0.45);
-  }
-
-  .chat-sidebar-left {
-    left: 0;
-
-    transform:
-      translateX(-105%);
-  }
-
-  .chat-sidebar-right {
-    right: 0;
-
-    display: flex;
-
-    transform:
-      translateX(105%);
-  }
-
-  .chat-sidebar-left.open,
-  .chat-sidebar-right.open {
-    transform:
-      translateX(0);
-  }
-
-  .sidebar-overlay {
-    position: fixed;
-
-    inset: 0;
-
-    z-index: 25;
-
-    display: block;
-
-    background:
-      rgba(0, 0, 0, 0.58);
-
-    opacity: 0;
-
-    visibility: hidden;
-
-    transition: 0.2s;
-
-    backdrop-filter:
-      blur(2px);
-  }
-
-  .sidebar-overlay.show {
-    opacity: 1;
-
-    visibility: visible;
-  }
-
-  .mobile-menu {
-    display: grid;
-  }
-
-  .chat-header {
-    height: 64px;
-
-    flex-basis: 64px;
-
-    padding:
-      0
-      10px;
+      0 10px;
   }
 
   .chat-brand {
@@ -1537,7 +1277,7 @@
     padding:
       22px
       13px
-      155px;
+      150px;
   }
 
   .message-row {
@@ -1561,37 +1301,26 @@
     border-radius: 16px;
 
     padding:
-      10px
-      12px;
+      10px 12px;
   }
 
   .code-block {
     border-radius: 11px;
-
-    max-width: 100%;
-  }
-
-  .code-header {
-    min-height: 36px;
-
-    padding:
-      0
-      9px;
   }
 
   .code-block pre {
-    padding: 12px;
+    padding: 13px;
   }
 
   .code-block pre code {
     font-size: 12px;
+
+    line-height: 1.6;
   }
 
   .composer-area {
     padding:
-      9px
-      10px
-      10px;
+      9px 10px 10px;
   }
 
   .composer {
@@ -1606,8 +1335,7 @@
     min-height: 44px;
 
     padding:
-      11px
-      10px;
+      11px 10px;
   }
 
   .send-button {
@@ -1628,4 +1356,5 @@
 
     max-width: 85%;
   }
-}
+
+   }
