@@ -1,4 +1,8 @@
 import {
+  createAudioButton,
+  destroyAudio
+} from "./audio.js";
+import {
   authenticated,
   currentUser,
   logout
