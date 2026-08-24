@@ -1,14 +1,14 @@
 import {
-  createAudioButton,
-  destroyAudio
-} from "./audio.js";
-import {
   authenticated,
   currentUser,
   logout
 } from "../auth.js";
 
 import { api } from "../api.js";
+
+import {
+  createAudioButton
+} from "./chat/audio.js";
 
 let conversationId = null;
 
