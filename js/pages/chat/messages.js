@@ -5,13 +5,15 @@ import { createAudioButton } from "./audio.js";
 | MESSAGE RENDERER
 |--------------------------------------------------------------------------
 |
-| Handles:
-| - User messages
-| - AI messages
-| - AI audio/play button
-| - Message scrolling
+| This file controls how messages appear in the chat.
 |
-| Keep this file focused only on messages.
+| chat.js does NOT need to know how audio works.
+|
+| AI message
+|    ↓
+| messages.js
+|    ↓
+| audio.js
 |
 |--------------------------------------------------------------------------
 */
@@ -26,18 +28,26 @@ export function addMessage(
     return;
   }
 
-  const row =
-    document.createElement("div");
+  const safeContent =
+    String(content ?? "");
 
   const isUser =
     role === "user";
 
+  /*
+  |--------------------------------------------------------------------------
+  | MESSAGE ROW
+  |--------------------------------------------------------------------------
+  */
+
+  const row =
+    document.createElement("div");
+
   row.className =
-    `message-row ${
-      isUser
-        ? "user-row"
-        : "ai-row"
-    }`;
+    isUser
+      ? "message-row message-row-user"
+      : "message-row message-row-ai";
+
 
   /*
   |--------------------------------------------------------------------------
@@ -56,9 +66,10 @@ export function addMessage(
       ? getInitials(displayName)
       : "🦁";
 
+
   /*
   |--------------------------------------------------------------------------
-  | MESSAGE BUBBLE
+  | BUBBLE
   |--------------------------------------------------------------------------
   */
 
@@ -66,11 +77,10 @@ export function addMessage(
     document.createElement("div");
 
   bubble.className =
-    `bubble ${
-      isUser
-        ? "user-bubble"
-        : "ai-bubble"
-    }`;
+    isUser
+      ? "message-bubble user-message"
+      : "message-bubble ai-message";
+
 
   /*
   |--------------------------------------------------------------------------
@@ -79,17 +89,21 @@ export function addMessage(
   */
 
   if (isUser) {
-    const text =
-      document.createElement("div");
 
-    text.className =
-      "message-text";
+    bubble.innerHTML = `
+      <div class="message-text"></div>
+    `;
+
+    const text =
+      bubble.querySelector(
+        ".message-text"
+      );
 
     text.textContent =
-      String(content ?? "");
+      safeContent;
 
-    bubble.appendChild(text);
   }
+
 
   /*
   |--------------------------------------------------------------------------
@@ -98,67 +112,95 @@ export function addMessage(
   */
 
   else {
-    const title =
-      document.createElement("strong");
 
-    title.textContent =
-      "SalonePadi AI";
+    bubble.innerHTML = `
+      <div class="message-name">
+        SalonePadi AI
+      </div>
 
-    const text =
-      document.createElement("div");
+      <div class="message-text"></div>
 
-    text.className =
-      "message-text";
+      <div class="message-actions"></div>
+    `;
 
-    text.textContent =
-      String(content ?? "");
 
     /*
     |--------------------------------------------------------------------------
-    | MESSAGE ACTIONS
+    | AI TEXT
+    |--------------------------------------------------------------------------
+    */
+
+    const text =
+      bubble.querySelector(
+        ".message-text"
+      );
+
+    /*
+     * Use the existing formatter if chat.js
+     * exposes it globally.
+     *
+     * Otherwise safely display the text.
+     */
+
+    if (
+      typeof window.formatAIText ===
+      "function"
+    ) {
+
+      text.innerHTML =
+        window.formatAIText(
+          safeContent
+        );
+
+    } else {
+
+      text.textContent =
+        safeContent;
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | AUDIO BUTTON
     |--------------------------------------------------------------------------
     */
 
     const actions =
-      document.createElement("div");
-
-    actions.className =
-      "message-actions";
-
-    /*
-    |--------------------------------------------------------------------------
-    | PLAY AUDIO BUTTON
-    |--------------------------------------------------------------------------
-    */
+      bubble.querySelector(
+        ".message-actions"
+      );
 
     try {
+
       const audioButton =
         createAudioButton(
-          String(content ?? "")
+          safeContent
         );
 
       if (audioButton) {
+
         actions.appendChild(
           audioButton
         );
+
       }
+
     } catch (error) {
+
       console.warn(
-        "Unable to create audio button:",
+        "SalonePadi audio button error:",
         error
       );
+
     }
 
-    bubble.append(
-      title,
-      text,
-      actions
-    );
   }
+
 
   /*
   |--------------------------------------------------------------------------
-  | ADD TO CHAT
+  | ADD MESSAGE TO DOM
   |--------------------------------------------------------------------------
   */
 
@@ -171,48 +213,59 @@ export function addMessage(
     row
   );
 
+
   /*
   |--------------------------------------------------------------------------
-  | SCROLL TO NEWEST MESSAGE
+  | SCROLL
   |--------------------------------------------------------------------------
   */
 
   requestAnimationFrame(() => {
+
     messagesContainer.scrollTo({
       top:
         messagesContainer.scrollHeight,
-      behavior: "smooth"
+      behavior:
+        "smooth"
     });
+
   });
+
+
+  return row;
 }
 
 
 /*
 |--------------------------------------------------------------------------
-| INITIALS
+| USER INITIALS
 |--------------------------------------------------------------------------
 */
 
-function getInitials(value) {
-  const text =
-    String(value || "User")
+function getInitials(name) {
+
+  const value =
+    String(name || "User")
       .trim();
 
-  if (!text) {
+  if (!value) {
     return "U";
   }
 
   const parts =
-    text.split(/\s+/);
+    value.split(/\s+/);
 
   if (parts.length >= 2) {
+
     return (
       parts[0][0] +
       parts[parts.length - 1][0]
     ).toUpperCase();
+
   }
 
-  return text
+  return value
     .slice(0, 2)
     .toUpperCase();
+
 }
