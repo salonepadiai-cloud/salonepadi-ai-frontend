@@ -1,20 +1,10 @@
-import { createAudioButton } from "./audio.js";
+import {
+  createAudioButton
+} from "./audio.js";
 
 /*
 |--------------------------------------------------------------------------
 | MESSAGE RENDERER
-|--------------------------------------------------------------------------
-|
-| This file controls how messages appear in the chat.
-|
-| chat.js does NOT need to know how audio works.
-|
-| AI message
-|    ↓
-| messages.js
-|    ↓
-| audio.js
-|
 |--------------------------------------------------------------------------
 */
 
@@ -25,94 +15,63 @@ export function addMessage(
   displayName = "User"
 ) {
   if (!messagesContainer) {
-    return;
+    return null;
   }
-
-  const safeContent =
-    String(content ?? "");
 
   const isUser =
     role === "user";
 
-  /*
-  |--------------------------------------------------------------------------
-  | MESSAGE ROW
-  |--------------------------------------------------------------------------
-  */
-
   const row =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
   row.className =
     isUser
       ? "message-row message-row-user"
       : "message-row message-row-ai";
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | AVATAR
-  |--------------------------------------------------------------------------
-  */
-
   const avatar =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
   avatar.className =
     "message-avatar";
 
   avatar.textContent =
     isUser
-      ? getInitials(displayName)
+      ? getInitials(
+          displayName
+        )
       : "🦁";
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | BUBBLE
-  |--------------------------------------------------------------------------
-  */
-
   const bubble =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
   bubble.className =
     isUser
       ? "message-bubble user-message"
       : "message-bubble ai-message";
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | USER MESSAGE
-  |--------------------------------------------------------------------------
-  */
-
   if (isUser) {
-
-    bubble.innerHTML = `
-      <div class="message-text"></div>
-    `;
-
     const text =
-      bubble.querySelector(
-        ".message-text"
+      document.createElement(
+        "div"
       );
 
+    text.className =
+      "message-text";
+
     text.textContent =
-      safeContent;
+      String(content ?? "");
 
-  }
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | AI MESSAGE
-  |--------------------------------------------------------------------------
-  */
-
-  else {
-
+    bubble.appendChild(
+      text
+    );
+  } else {
     bubble.innerHTML = `
       <div class="message-name">
         SalonePadi AI
@@ -123,86 +82,52 @@ export function addMessage(
       <div class="message-actions"></div>
     `;
 
-
-    /*
-    |--------------------------------------------------------------------------
-    | AI TEXT
-    |--------------------------------------------------------------------------
-    */
-
     const text =
       bubble.querySelector(
         ".message-text"
       );
 
-    /*
-     * Use the existing formatter if chat.js
-     * exposes it globally.
-     *
-     * Otherwise safely display the text.
-     */
-
     if (
+      text &&
       typeof window.formatAIText ===
-      "function"
+        "function"
     ) {
-
       text.innerHTML =
         window.formatAIText(
-          safeContent
+          content
         );
-
-    } else {
-
+    } else if (text) {
       text.textContent =
-        safeContent;
-
+        String(
+          content ?? ""
+        );
     }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | AUDIO BUTTON
-    |--------------------------------------------------------------------------
-    */
 
     const actions =
       bubble.querySelector(
         ".message-actions"
       );
 
-    try {
+    if (actions) {
+      try {
+        const audioButton =
+          createAudioButton(
+            content
+          );
 
-      const audioButton =
-        createAudioButton(
-          safeContent
+        if (audioButton) {
+          actions.appendChild(
+            audioButton
+          );
+        }
+      } catch (error) {
+        console.warn(
+          "Audio button error:",
+          error
         );
-
-      if (audioButton) {
-
-        actions.appendChild(
-          audioButton
-        );
-
       }
-
-    } catch (error) {
-
-      console.warn(
-        "SalonePadi audio button error:",
-        error
-      );
-
     }
-
   }
-
-
-  /*
-  |--------------------------------------------------------------------------
-  | ADD MESSAGE TO DOM
-  |--------------------------------------------------------------------------
-  */
 
   row.append(
     avatar,
@@ -213,59 +138,37 @@ export function addMessage(
     row
   );
 
-
-  /*
-  |--------------------------------------------------------------------------
-  | SCROLL
-  |--------------------------------------------------------------------------
-  */
-
-  requestAnimationFrame(() => {
-
-    messagesContainer.scrollTo({
-      top:
-        messagesContainer.scrollHeight,
-      behavior:
-        "smooth"
-    });
-
-  });
-
-
   return row;
 }
 
-
-/*
-|--------------------------------------------------------------------------
-| USER INITIALS
-|--------------------------------------------------------------------------
-*/
-
-function getInitials(name) {
-
-  const value =
-    String(name || "User")
+function getInitials(
+  value
+) {
+  const text =
+    String(
+      value || "User"
+    )
       .trim();
 
-  if (!value) {
+  if (!text) {
     return "U";
   }
 
   const parts =
-    value.split(/\s+/);
+    text.split(
+      /\s+/
+    );
 
   if (parts.length >= 2) {
-
     return (
       parts[0][0] +
-      parts[parts.length - 1][0]
+      parts[
+        parts.length - 1
+      ][0]
     ).toUpperCase();
-
   }
 
-  return value
+  return text
     .slice(0, 2)
     .toUpperCase();
-
 }
