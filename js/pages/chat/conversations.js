@@ -146,3 +146,96 @@ export function rememberConversationTitle(
     );
   }
 }
+
+
+export async function deleteConversation(
+  api,
+  id
+) {
+  if (!id) {
+    throw new Error(
+      "Conversation ID is required."
+    );
+  }
+
+  /*
+   * The frontend deliberately calls the backend DELETE endpoint.
+   * The database remains the source of truth.
+   */
+  const result =
+    await api.delete(
+      `/api/chat/conversations/${encodeURIComponent(id)}`
+    );
+
+  clearConversationTitleCache(
+    id
+  );
+
+  return result;
+}
+
+export function clearConversationTitleCache(
+  id
+) {
+  if (!id) {
+    return;
+  }
+
+  try {
+    /*
+     * Remove the title from every SalonePadi title cache.
+     * This keeps old titles from returning after a backend delete.
+     */
+    const prefix =
+      TITLE_CACHE_PREFIX;
+
+    for (
+      let index = 0;
+      index < localStorage.length;
+      index += 1
+    ) {
+      const key =
+        localStorage.key(index);
+
+      if (
+        !key ||
+        !key.startsWith(prefix)
+      ) {
+        continue;
+      }
+
+      const raw =
+        localStorage.getItem(key);
+
+      if (!raw) {
+        continue;
+      }
+
+      try {
+        const cache =
+          JSON.parse(raw);
+
+        if (
+          Object.prototype.hasOwnProperty.call(
+            cache,
+            id
+          )
+        ) {
+          delete cache[id];
+
+          localStorage.setItem(
+            key,
+            JSON.stringify(cache)
+          );
+        }
+      } catch {
+        // Ignore one damaged title cache.
+      }
+    }
+  } catch (error) {
+    console.warn(
+      "Conversation title cache cleanup error:",
+      error
+    );
+  }
+}
