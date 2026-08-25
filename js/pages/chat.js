@@ -394,36 +394,11 @@ export async function renderChat(container) {
 
     await api.get("/api/auth/me");
 
-    showStatus("Loading your recent chats...");
+    showStatus("Starting your chat...");
 
-    const conversations =
-      await loadConversations();
-
-    if (
-      Array.isArray(conversations) &&
-      conversations.length > 0
-    ) {
-      // Reuse the most recently updated conversation
-      // instead of creating a new chat every time the
-      // chat page is opened or refreshed.
-      const latestConversation =
-        conversations[0];
-
-      conversationId =
-        latestConversation.id;
-
-      conversationTitle =
-        latestConversation.title ||
-        "New Chat";
-
-      await loadMessages();
-      updateConversationListSelection();
-    } else {
-      // First-time users get one conversation.
-      await createConversation();
-      await loadMessages();
-      await loadConversations();
-    }
+    await createConversation();
+    await loadMessages();
+    await loadConversations();
 
     showStatus("");
     input.focus();
@@ -560,23 +535,14 @@ export async function renderChat(container) {
           "/api/chat/conversations"
         );
 
-      const conversations =
-        Array.isArray(data?.conversations)
-          ? data.conversations
-          : [];
-
       renderConversationList(
-        conversations
+        data?.conversations || []
       );
-
-      return conversations;
     } catch (error) {
       console.warn(
         "Conversation list error:",
         error
       );
-
-      return [];
     }
   }
 
@@ -666,7 +632,6 @@ export async function renderChat(container) {
 
     if (id === conversationId) {
       closeSidebars();
-      updateConversationListSelection();
       input.focus();
       return;
     }
@@ -678,10 +643,6 @@ export async function renderChat(container) {
       showStatus(
         "Loading conversation..."
       );
-
-      // Clear the old conversation immediately so the user
-      // never sees messages from two chats mixed together.
-      messages.innerHTML = "";
 
       conversationId = id;
       conversationTitle =
