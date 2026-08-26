@@ -1,3 +1,30 @@
+/* =========================================
+   SalonePadi AI
+   Messages Module
+
+   RESPONSIBILITY:
+   This file ONLY renders chat messages.
+
+   It handles:
+   - User message rendering
+   - AI message rendering
+   - Message avatars
+   - Message text
+   - AI message action area
+   - Audio button attachment
+   - Safe text rendering
+
+   It does NOT:
+   - Send messages
+   - Call the backend
+   - Manage conversations
+   - Manage composer/input
+   - Manage sidebar
+   - Manage authentication
+   - Manage chat state
+   - Own AI formatting logic
+   ========================================= */
+
 import {
   createAudioButton
 } from "./audio.js";
@@ -7,26 +34,9 @@ import {
 } from "../../config.js";
 
 
-/*
-|--------------------------------------------------------------------------
-| MESSAGE RENDERER
-|--------------------------------------------------------------------------
-|
-| Responsible ONLY for rendering chat messages.
-|
-| Audio functionality remains inside:
-|
-|     chat/audio.js
-|
-| Branding comes from:
-|
-|     config.js
-|
-| This keeps chat.js from becoming unnecessarily large.
-|
-|--------------------------------------------------------------------------
-*/
-
+/* =========================================
+   ADD MESSAGE
+   ========================================= */
 
 export function addMessage(
   messagesContainer,
@@ -36,10 +46,8 @@ export function addMessage(
 ) {
 
   /*
-  |--------------------------------------------------------------------------
-  | SAFETY CHECK
-  |--------------------------------------------------------------------------
-  */
+   * Safety check.
+   */
 
   if (!messagesContainer) {
     return null;
@@ -47,20 +55,16 @@ export function addMessage(
 
 
   /*
-  |--------------------------------------------------------------------------
-  | MESSAGE TYPE
-  |--------------------------------------------------------------------------
-  */
+   * Determine message type.
+   */
 
   const isUser =
     role === "user";
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | MESSAGE ROW
-  |--------------------------------------------------------------------------
-  */
+  /* =========================================
+     MESSAGE ROW
+     ========================================= */
 
   const row =
     document.createElement(
@@ -74,11 +78,9 @@ export function addMessage(
       : "message-row message-row-ai";
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | AVATAR
-  |--------------------------------------------------------------------------
-  */
+  /* =========================================
+     AVATAR
+     ========================================= */
 
   const avatar =
     document.createElement(
@@ -90,20 +92,11 @@ export function addMessage(
     "message-avatar";
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | USER AVATAR
-  |--------------------------------------------------------------------------
-  |
-  | User messages use the user's initials.
-  |
-  | AI messages use the configured application logo
-  | when available.
-  |
-  |--------------------------------------------------------------------------
-  */
-
   if (isUser) {
+
+    /*
+     * User avatar = initials.
+     */
 
     avatar.textContent =
       getInitials(
@@ -113,69 +106,19 @@ export function addMessage(
   } else {
 
     /*
-     * Prefer the configured logo.
+     * AI avatar = configured logo.
      */
 
-    if (CONFIG.logo) {
-
-      const logo =
-        document.createElement(
-          "img"
-        );
-
-
-      logo.src =
-        CONFIG.logo;
-
-
-      logo.alt =
-        CONFIG.logoAlt ||
-        CONFIG.appName ||
-        "AI";
-
-
-      logo.className =
-        "message-avatar-image";
-
-
-      /*
-       * If the image fails, fall back
-       * to a simple text mark.
-       */
-
-      logo.addEventListener(
-        "error",
-        () => {
-
-          avatar.innerHTML =
-            "";
-
-          avatar.textContent =
-            "AI";
-
-        }
-      );
-
-
-      avatar.appendChild(
-        logo
-      );
-
-    } else {
-
-      avatar.textContent =
-        "AI";
-
-    }
+    createAIAvatar(
+      avatar
+    );
 
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | MESSAGE BUBBLE
-  |--------------------------------------------------------------------------
-  */
+  /* =========================================
+     MESSAGE BUBBLE
+     ========================================= */
 
   const bubble =
     document.createElement(
@@ -189,171 +132,37 @@ export function addMessage(
       : "message-bubble ai-message";
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | USER MESSAGE
-  |--------------------------------------------------------------------------
-  */
+  /* =========================================
+     USER MESSAGE
+     ========================================= */
 
   if (isUser) {
 
-    const text =
-      document.createElement(
-        "div"
-      );
-
-
-    text.className =
-      "message-text";
-
-
-    /*
-     * textContent is intentionally used here.
-     *
-     * This prevents user input from being
-     * interpreted as HTML.
-     */
-
-    text.textContent =
-      String(
-        content ?? ""
-      );
-
-
-    bubble.appendChild(
-      text
+    renderUserMessage(
+      bubble,
+      content
     );
 
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | AI MESSAGE
-  |--------------------------------------------------------------------------
-  */
+  /* =========================================
+     AI MESSAGE
+     ========================================= */
 
   else {
 
-    bubble.innerHTML = `
-      <div class="message-name">
-        ${escapeHTML(
-          CONFIG.appName ||
-          "AI"
-        )}
-      </div>
-
-      <div class="message-text"></div>
-
-      <div class="message-actions"></div>
-    `;
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | AI MESSAGE TEXT
-    |--------------------------------------------------------------------------
-    */
-
-    const text =
-      bubble.querySelector(
-        ".message-text"
-      );
-
-
-    if (
-      text &&
-      typeof window.formatAIText ===
-        "function"
-    ) {
-
-      text.innerHTML =
-        window.formatAIText(
-          content
-        );
-
-    }
-
-    else if (text) {
-
-      text.textContent =
-        String(
-          content ?? ""
-        );
-
-    }
-
-
-    /*
-    |--------------------------------------------------------------------------
-    | MESSAGE ACTIONS
-    |--------------------------------------------------------------------------
-    |
-    | Buttons such as:
-    |
-    |   ▶ Listen
-    |
-    | stay inside this dedicated action
-    | container.
-    |
-    |--------------------------------------------------------------------------
-    */
-
-    const actions =
-      bubble.querySelector(
-        ".message-actions"
-      );
-
-
-    if (actions) {
-
-      try {
-
-        /*
-        |--------------------------------------------------------------------------
-        | AUDIO BUTTON
-        |--------------------------------------------------------------------------
-        |
-        | The actual speech functionality lives
-        | inside chat/audio.js.
-        |
-        */
-
-        const audioButton =
-          createAudioButton(
-            content
-          );
-
-
-        if (audioButton) {
-
-          actions.appendChild(
-            audioButton
-          );
-
-        }
-
-      }
-
-      catch (error) {
-
-        console.warn(
-          "Audio button error:",
-          error
-        );
-
-      }
-
-    }
+    renderAIMessage(
+      bubble,
+      content
+    );
 
   }
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | APPEND MESSAGE
-  |--------------------------------------------------------------------------
-    */
+  /* =========================================
+     APPEND
+     ========================================= */
 
   row.append(
     avatar,
@@ -366,30 +175,260 @@ export function addMessage(
   );
 
 
-  /*
-  |--------------------------------------------------------------------------
-  | RETURN CREATED ROW
-  |--------------------------------------------------------------------------
-  */
-
   return row;
+}
+
+
+/* =========================================
+   USER MESSAGE
+   ========================================= */
+
+function renderUserMessage(
+  bubble,
+  content
+) {
+
+  const text =
+    document.createElement(
+      "div"
+    );
+
+
+  text.className =
+    "message-text";
+
+
+  /*
+   * IMPORTANT:
+   *
+   * User content uses textContent.
+   *
+   * This prevents user input from being
+   * interpreted as HTML.
+   */
+
+  text.textContent =
+    String(
+      content ?? ""
+    );
+
+
+  bubble.appendChild(
+    text
+  );
 
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| USER INITIALS
-|--------------------------------------------------------------------------
-|
-| Examples:
-|
-|   "John Fatorma" → "JF"
-|   "John"         → "JO"
-|   "Aisha Kamara" → "AK"
-|
-|--------------------------------------------------------------------------
-*/
+/* =========================================
+   AI MESSAGE
+   ========================================= */
+
+function renderAIMessage(
+  bubble,
+  content
+) {
+
+  /*
+   * Message name.
+   */
+
+  const name =
+    document.createElement(
+      "div"
+    );
+
+
+  name.className =
+    "message-name";
+
+
+  name.textContent =
+    CONFIG.appName ||
+    "AI";
+
+
+  /*
+   * Message text.
+   */
+
+  const text =
+    document.createElement(
+      "div"
+    );
+
+
+  text.className =
+    "message-text";
+
+
+  /*
+   * AI formatting is intentionally provided
+   * by the formatter module through the global
+   * bridge.
+   *
+   * messages.js does NOT own the formatter.
+   */
+
+  if (
+    typeof window.formatAIText ===
+    "function"
+  ) {
+
+    text.innerHTML =
+      window.formatAIText(
+        content
+      );
+
+  } else {
+
+    /*
+     * Safe fallback if the formatter has
+     * not been initialized yet.
+     */
+
+    text.textContent =
+      String(
+        content ?? ""
+      );
+
+  }
+
+
+  /*
+   * Message actions.
+   */
+
+  const actions =
+    document.createElement(
+      "div"
+    );
+
+
+  actions.className =
+    "message-actions";
+
+
+  /*
+   * Audio button belongs to the message
+   * action area, but the actual audio logic
+   * remains in audio.js.
+   */
+
+  try {
+
+    const audioButton =
+      createAudioButton(
+        String(
+          content ?? ""
+        )
+      );
+
+
+    if (audioButton) {
+
+      actions.appendChild(
+        audioButton
+      );
+
+    }
+
+  } catch (error) {
+
+    console.warn(
+      "Audio button creation failed:",
+      error
+    );
+
+  }
+
+
+  bubble.append(
+    name,
+    text,
+    actions
+  );
+
+}
+
+
+/* =========================================
+   AI AVATAR
+   ========================================= */
+
+function createAIAvatar(
+  avatar
+) {
+
+  /*
+   * Use configured logo when available.
+   */
+
+  if (
+    CONFIG?.logo
+  ) {
+
+    const logo =
+      document.createElement(
+        "img"
+      );
+
+
+    logo.src =
+      CONFIG.logo;
+
+
+    logo.alt =
+      CONFIG.logoAlt ||
+      CONFIG.appName ||
+      "AI";
+
+
+    logo.className =
+      "message-avatar-image";
+
+
+    /*
+     * Safe fallback if logo fails.
+     */
+
+    logo.addEventListener(
+      "error",
+      () => {
+
+        avatar.innerHTML =
+          "";
+
+        avatar.textContent =
+          "AI";
+
+      }
+    );
+
+
+    avatar.appendChild(
+      logo
+    );
+
+
+    return;
+
+  }
+
+
+  /*
+   * No logo configured.
+   */
+
+  avatar.textContent =
+    "AI";
+
+}
+
+
+/* =========================================
+   USER INITIALS
+   ========================================= */
 
 function getInitials(
   value
@@ -403,9 +442,7 @@ function getInitials(
 
 
   if (!text) {
-
     return "U";
-
   }
 
 
@@ -414,6 +451,12 @@ function getInitials(
       /\s+/
     );
 
+
+  /*
+   * First + last name.
+   *
+   * John Fatorma → JF
+   */
 
   if (
     parts.length >= 2
@@ -429,54 +472,32 @@ function getInitials(
   }
 
 
+  /*
+   * Single name.
+   *
+   * John → JO
+   */
+
   return text
-    .slice(0, 2)
+    .slice(
+      0,
+      2
+    )
     .toUpperCase();
 
 }
 
 
-/*
-|--------------------------------------------------------------------------
-| SAFE HTML ESCAPE
-|--------------------------------------------------------------------------
-|
-| Used for application-controlled text such as
-| CONFIG.appName.
-|
-| User messages themselves are rendered with
-| textContent and therefore do not need HTML
-| interpolation.
-|
-|--------------------------------------------------------------------------
-*/
+/* =========================================
+   OPTIONAL FORMATTER BRIDGE
+   =========================================
 
-function escapeHTML(
-  value
-) {
+   The formatter itself will eventually live
+   in its own module.
 
-  return String(
-    value ?? ""
-  )
-    .replace(
-      /&/g,
-      "&amp;"
-    )
-    .replace(
-      /</g,
-      "&lt;"
-    )
-    .replace(
-      />/g,
-      "&gt;"
-    )
-    .replace(
-      /"/g,
-      "&quot;"
-    )
-    .replace(
-      /'/g,
-      "&#039;"
-    );
+   For now messages.js simply consumes:
 
-      }
+       window.formatAIText()
+
+   This keeps formatting out of the renderer.
+   ========================================= */
