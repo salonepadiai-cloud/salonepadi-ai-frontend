@@ -1,118 +1,195 @@
-/*
-|--------------------------------------------------------------------------
-| CHAT FEATURE LOADER
-|--------------------------------------------------------------------------
-|
-| Feature contract:
-|
-| Every feature file can later export:
-|
-|   export function init(context) {
-|     // feature code
-|
-|     return () => {
-|       // cleanup
-|     };
-|   }
-|
-| The master chat controller does not need to be edited when a feature
-| implementation is improved. A feature error is isolated and does not
-| blank the entire chat UI.
-|--------------------------------------------------------------------------
-*/
+/* =========================================
+   SalonePadi AI
+   Chat Feature Loader
 
-const FEATURE_MODULES = [
-  "./sidebar.js",
-  "./composer.js",
-  "./settings.js",
-  "./profile.js",
-  "./voice.js",
-  "./attachments.js",
-  "./message-actions.js",
-  "./search.js",
-  "./project-mode.js"
-];
+   RESPONSIBILITY:
+   This file ONLY loads optional Chat J
+   features.
+
+   It does NOT:
+   - Render messages
+   - Manage conversations
+   - Handle composer/input
+   - Manage authentication
+   - Manage chat state
+   - Implement audio
+   - Implement profile
+   - Implement settings
+   - Implement sidebar logic
+
+   Optional feature modules are loaded here
+   so the Chat Master Controller does not
+   need to know their internal details.
+   ========================================= */
+
+
+/* =========================================
+   LOAD CHAT FEATURES
+   ========================================= */
 
 export async function loadChatFeatures(
-  context
+  context = {}
 ) {
+
   const cleanups = [];
 
-  const results =
-    await Promise.allSettled(
-      FEATURE_MODULES.map(
-        modulePath =>
-          import(modulePath)
-      )
-    );
 
-  for (
-    let index = 0;
-    index < results.length;
-    index += 1
-  ) {
-    const result =
-      results[index];
+  /* -----------------------------------------
+     SAFETY
+     ----------------------------------------- */
 
-    const modulePath =
-      FEATURE_MODULES[index];
+  if (!context) {
+    context = {};
+  }
 
-    if (
-      result.status !==
-      "fulfilled"
-    ) {
-      console.warn(
-        `Optional chat feature unavailable: ${modulePath}`,
-        result.reason
-      );
 
-      continue;
-    }
+  /* -----------------------------------------
+     FEATURE REGISTRY
+     -----------------------------------------
 
-    const module =
-      result.value;
+     Add optional Chat J modules here.
 
-    if (
-      typeof module.init !==
-      "function"
-    ) {
-      continue;
-    }
+     Each module should expose:
+
+       init(context)
+
+     and may return:
+
+       cleanup()
+
+     ----------------------------------------- */
+
+  const features = [];
+
+
+  /* =========================================
+     LOAD FEATURES
+     ========================================= */
+
+  for (const loadFeature of features) {
 
     try {
+
+      const module =
+        await loadFeature();
+
+
+      if (
+        !module ||
+        typeof module.init !==
+          "function"
+      ) {
+        continue;
+      }
+
+
       const cleanup =
         await module.init(
           context
         );
 
+
       if (
         typeof cleanup ===
         "function"
       ) {
+
         cleanups.push(
           cleanup
         );
+
       }
+
     } catch (error) {
+
+      /*
+       * Optional features must never
+       * break the main Chat J.
+       */
+
       console.warn(
-        `Chat feature failed safely: ${modulePath}`,
+        "Optional chat feature failed:",
         error
       );
+
     }
+
   }
 
+
+  /* =========================================
+     RETURN FEATURE CLEANUP
+     ========================================= */
+
   return () => {
+
+    /*
+     * Clean up in reverse order.
+     *
+     * This is safer when one feature depends
+     * on another feature being removed first.
+     */
+
     for (
-      const cleanup of cleanups
+      let index =
+        cleanups.length - 1;
+      index >= 0;
+      index -= 1
     ) {
+
+      const cleanup =
+        cleanups[index];
+
+
+      if (
+        typeof cleanup !==
+        "function"
+      ) {
+        continue;
+      }
+
+
       try {
+
         cleanup();
+
       } catch (error) {
+
         console.warn(
-          "Chat feature cleanup error:",
+          "Chat feature cleanup failed:",
           error
         );
+
       }
+
     }
+
+
+    cleanups.length = 0;
+
   };
+
+}
+
+
+/* =========================================
+   BACKWARD-COMPATIBILITY ALIAS
+   =========================================
+
+   Some older code may still use:
+
+       init(context)
+
+   Keep this temporarily while we finish
+   separating Chat J's.
+   ========================================= */
+
+export async function init(
+  context = {}
+) {
+
+  return loadChatFeatures(
+    context
+  );
+
 }
