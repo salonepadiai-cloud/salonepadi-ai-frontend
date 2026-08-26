@@ -1,5 +1,23 @@
 export const CONFIG = {
-  appName: "SalonePadi AI",
+  /*
+  |--------------------------------------------------------------------------
+  | APP BRANDING
+  |--------------------------------------------------------------------------
+  */
 
-  apiUrl: "https://salonepadi-ai-backend.onrender.com"
+  appName: "Johnny Tec OS",
+
+  logo: "assets/images/johnny-tec-os.png",
+
+  logoAlt: "Johnny Tec OS",
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | BACKEND
+  |--------------------------------------------------------------------------
+  */
+
+  apiUrl:
+    "https://salonepadi-ai-backend.onrender.com"
 };
