@@ -1,3 +1,20 @@
+/*
+|--------------------------------------------------------------------------
+| JOHNNY TEC OS — HOME PAGE
+|--------------------------------------------------------------------------
+|
+| Controls the landing page only.
+| The logo is treated as a contained profile-style image.
+|
+|--------------------------------------------------------------------------
+*/
+
+/*
+|--------------------------------------------------------------------------
+| HOME PAGE
+|--------------------------------------------------------------------------
+*/
+
 .home-page {
   min-height: 100vh;
 
@@ -5,89 +22,431 @@
   align-items: center;
   justify-content: center;
 
-  padding: 24px;
+  padding: 32px 20px;
+
+  box-sizing: border-box;
+
+  overflow-x: hidden;
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| HOME CONTAINER
+|--------------------------------------------------------------------------
+*/
 
 .home-container {
   width: 100%;
   max-width: 700px;
 
+  margin: 0 auto;
+
   text-align: center;
+
+  box-sizing: border-box;
 }
 
-.home-logo {
-  width: 90px;
-  height: 90px;
 
-  margin: 0 auto 24px;
+/*
+|--------------------------------------------------------------------------
+| LOGO CONTAINER
+|--------------------------------------------------------------------------
+|
+| IMPORTANT:
+| The logo must stay inside this box.
+| It must NOT become a background image.
+|--------------------------------------------------------------------------
+*/
+
+.home-logo {
+  width: 150px;
+  height: 150px;
+
+  margin: 0 auto 28px;
 
   display: flex;
   align-items: center;
   justify-content: center;
 
+  position: relative;
+
+  overflow: hidden;
+
   border-radius: 50%;
 
-  background: #1e293b;
+  background: #020617;
 
-  font-size: 48px;
+  border: 2px solid rgba(59, 130, 246, 0.45);
+
+  box-shadow:
+    0 0 0 6px rgba(30, 41, 59, 0.35),
+    0 0 30px rgba(14, 165, 233, 0.18);
+
+  box-sizing: border-box;
+
+  flex-shrink: 0;
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| LOGO IMAGE
+|--------------------------------------------------------------------------
+|
+| This prevents the full PNG from spreading across
+| the entire page.
+|--------------------------------------------------------------------------
+*/
+
+.home-logo-image {
+  width: 100%;
+  height: 100%;
+
+  display: block;
+
+  max-width: 100%;
+  max-height: 100%;
+
+  object-fit: cover;
+  object-position: center;
+
+  border-radius: 50%;
+
+  box-sizing: border-box;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| HOME TITLE
+|--------------------------------------------------------------------------
+*/
 
 .home-title {
   margin: 0;
 
-  font-size: clamp(36px, 8vw, 64px);
+  padding: 0;
+
+  font-size: clamp(
+    36px,
+    8vw,
+    64px
+  );
+
+  line-height: 1.1;
+
   font-weight: 800;
+
+  letter-spacing: -1.5px;
+
+  color: #ffffff;
+
+  word-break: normal;
+
+  overflow-wrap: normal;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| HOME SUBTITLE
+|--------------------------------------------------------------------------
+*/
+
 .home-subtitle {
-  margin: 16px auto 0;
+  margin: 18px auto 0;
 
   max-width: 520px;
+
+  padding: 0 10px;
 
   color: #94a3b8;
 
   font-size: 18px;
+
   line-height: 1.6;
+
+  box-sizing: border-box;
 }
 
+
+/*
+|--------------------------------------------------------------------------
+| HOME ACTIONS
+|--------------------------------------------------------------------------
+*/
+
 .home-actions {
+  width: 100%;
+
   display: flex;
+
+  align-items: center;
 
   justify-content: center;
 
-  gap: 12px;
+  gap: 14px;
 
-  margin-top: 32px;
+  margin-top: 34px;
 
   flex-wrap: wrap;
+
+  box-sizing: border-box;
 }
 
-.home-button {
-  min-width: 150px;
 
-  padding: 14px 22px;
+/*
+|--------------------------------------------------------------------------
+| HOME BUTTON
+|--------------------------------------------------------------------------
+*/
+
+.home-button {
+  min-width: 160px;
+
+  min-height: 50px;
+
+  padding: 14px 24px;
 
   border: 0;
-  border-radius: 10px;
+
+  border-radius: 12px;
+
+  font-size: 16px;
 
   font-weight: 700;
 
+  font-family: inherit;
+
+  cursor: pointer;
+
   transition:
     transform 0.2s ease,
-    opacity 0.2s ease;
+    opacity 0.2s ease,
+    box-shadow 0.2s ease;
+
+  box-sizing: border-box;
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| BUTTON HOVER
+|--------------------------------------------------------------------------
+*/
 
 .home-button:hover {
   transform: translateY(-2px);
-  opacity: 0.9;
+
+  opacity: 0.95;
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| BUTTON ACTIVE
+|--------------------------------------------------------------------------
+*/
+
+.home-button:active {
+  transform: translateY(0);
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| BUTTON FOCUS
+|--------------------------------------------------------------------------
+*/
+
+.home-button:focus-visible {
+  outline: 2px solid #38bdf8;
+
+  outline-offset: 3px;
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| PRIMARY BUTTON
+|--------------------------------------------------------------------------
+*/
 
 .home-button-primary {
   background: #ffffff;
+
   color: #020617;
+
+  box-shadow:
+    0 8px 24px rgba(0, 0, 0, 0.22);
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| SECONDARY BUTTON
+|--------------------------------------------------------------------------
+*/
 
 .home-button-secondary {
   background: #1e293b;
+
   color: #ffffff;
+
+  border: 1px solid rgba(
+    148,
+    163,
+    184,
+    0.25
+  );
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| MOBILE
+|--------------------------------------------------------------------------
+*/
+
+@media (max-width: 600px) {
+
+  .home-page {
+    min-height: 100vh;
+
+    padding: 28px 18px;
+  }
+
+
+  .home-container {
+    max-width: 100%;
+  }
+
+
+  /*
+   * Smaller profile logo on phones.
+   */
+
+  .home-logo {
+    width: 125px;
+    height: 125px;
+
+    margin-bottom: 24px;
+  }
+
+
+  .home-title {
+    font-size: clamp(
+      34px,
+      10vw,
+      46px
+    );
+
+    letter-spacing: -1px;
+  }
+
+
+  .home-subtitle {
+    margin-top: 14px;
+
+    padding: 0 4px;
+
+    font-size: 16px;
+
+    line-height: 1.55;
+  }
+
+
+  /*
+   * Stack buttons vertically on smaller screens.
+   */
+
+  .home-actions {
+    flex-direction: column;
+
+    width: 100%;
+
+    gap: 12px;
+
+    margin-top: 28px;
+  }
+
+
+  .home-button {
+    width: 100%;
+
+    max-width: 360px;
+
+    min-width: 0;
+
+    min-height: 54px;
+  }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| SMALL PHONES
+|--------------------------------------------------------------------------
+*/
+
+@media (max-width: 380px) {
+
+  .home-page {
+    padding:
+      24px
+      14px;
+  }
+
+
+  .home-logo {
+    width: 105px;
+    height: 105px;
+
+    margin-bottom: 20px;
+  }
+
+
+  .home-title {
+    font-size: 34px;
+
+    letter-spacing: -0.8px;
+  }
+
+
+  .home-subtitle {
+    font-size: 15px;
+  }
+
+
+  .home-button {
+    max-width: 100%;
+
+    min-height: 52px;
+
+    padding:
+      13px
+      18px;
+  }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| REDUCED MOTION
+|--------------------------------------------------------------------------
+*/
+
+@media (prefers-reduced-motion: reduce) {
+
+  .home-button {
+    transition: none;
+  }
+
+  .home-button:hover {
+    transform: none;
+  }
+
 }
