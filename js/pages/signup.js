@@ -2,22 +2,74 @@ import {
   signup
 } from "../auth.js";
 
+import {
+  CONFIG
+} from "../config.js";
+
+
+/*
+|--------------------------------------------------------------------------
+| SIGNUP PAGE
+|--------------------------------------------------------------------------
+|
+| Authentication remains handled by auth.js.
+|
+| Branding comes from CONFIG so the application name
+| and logo stay synchronized across the app.
+|
+|--------------------------------------------------------------------------
+*/
+
 export function renderSignup(container) {
+
   container.innerHTML = `
     <main class="auth-page">
 
       <section class="auth-container">
 
-        <div class="auth-logo">🦁</div>
 
-        <h1>Create your account</h1>
+        <!-- =====================================================
+             APP LOGO
+             ===================================================== -->
+
+        <div class="auth-logo">
+
+          <img
+            src="${escapeAttribute(CONFIG.logo)}"
+            alt="${escapeAttribute(CONFIG.logoAlt)}"
+            class="auth-logo-image"
+          >
+
+        </div>
+
+
+        <!-- =====================================================
+             PAGE TITLE
+             ===================================================== -->
+
+        <h1>
+          Create your account
+        </h1>
+
+
+        <!-- =====================================================
+             DESCRIPTION
+             ===================================================== -->
 
         <p>
-          Join SalonePadi AI and start building
-          your personal AI relationship.
+          Join ${escapeHTML(CONFIG.appName)}
+          and start building your personal AI relationship.
         </p>
 
+
+        <!-- =====================================================
+             SIGNUP FORM
+             ===================================================== -->
+
         <form id="signupForm">
+
+
+          <!-- NAME -->
 
           <input
             id="name"
@@ -27,6 +79,9 @@ export function renderSignup(container) {
             required
           />
 
+
+          <!-- EMAIL -->
+
           <input
             id="email"
             type="email"
@@ -34,6 +89,9 @@ export function renderSignup(container) {
             autocomplete="email"
             required
           />
+
+
+          <!-- PASSWORD -->
 
           <div class="password-field">
 
@@ -45,6 +103,7 @@ export function renderSignup(container) {
               minlength="8"
               required
             />
+
 
             <button
               id="togglePassword"
@@ -58,6 +117,9 @@ export function renderSignup(container) {
 
           </div>
 
+
+          <!-- CREATE ACCOUNT -->
+
           <button
             id="signupButton"
             type="submit"
@@ -65,12 +127,23 @@ export function renderSignup(container) {
             Create Account
           </button>
 
+
         </form>
+
+
+        <!-- =====================================================
+             SIGNUP MESSAGE
+             ===================================================== -->
 
         <p
           id="signupMessage"
           class="auth-message"
         ></p>
+
+
+        <!-- =====================================================
+             LOGIN LINK
+             ===================================================== -->
 
         <button
           id="loginLink"
@@ -80,59 +153,80 @@ export function renderSignup(container) {
           Already have an account? Log in
         </button>
 
+
       </section>
 
     </main>
   `;
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | ELEMENTS
+  |--------------------------------------------------------------------------
+  */
 
   const form =
     document.getElementById(
       "signupForm"
     );
 
+
   const message =
     document.getElementById(
       "signupMessage"
     );
+
 
   const button =
     document.getElementById(
       "signupButton"
     );
 
+
   const password =
     document.getElementById(
       "password"
     );
+
 
   const togglePassword =
     document.getElementById(
       "togglePassword"
     );
 
+
   const loginLink =
     document.getElementById(
       "loginLink"
     );
 
+
   /*
-   * Show / hide password
-   */
+  |--------------------------------------------------------------------------
+  | SHOW / HIDE PASSWORD
+  |--------------------------------------------------------------------------
+  */
+
   togglePassword.addEventListener(
     "click",
     () => {
+
       const hidden =
         password.type === "password";
+
 
       password.type =
         hidden
           ? "text"
           : "password";
 
+
       togglePassword.textContent =
         hidden
           ? "🙈"
           : "👁️";
+
 
       togglePassword.setAttribute(
         "aria-label",
@@ -141,39 +235,60 @@ export function renderSignup(container) {
           : "Show password"
       );
 
+
       togglePassword.setAttribute(
         "title",
         hidden
           ? "Hide password"
           : "Show password"
       );
+
     }
   );
 
+
   /*
-   * Go to login
-   */
+  |--------------------------------------------------------------------------
+  | GO TO LOGIN
+  |--------------------------------------------------------------------------
+  */
+
   loginLink.addEventListener(
     "click",
     () => {
+
       window.location.hash =
         "#/login";
+
     }
   );
 
+
   /*
-   * Create account
-   */
+  |--------------------------------------------------------------------------
+  | CREATE ACCOUNT
+  |--------------------------------------------------------------------------
+  */
+
   form.addEventListener(
     "submit",
     async (event) => {
+
       event.preventDefault();
+
+
+      /*
+      |--------------------------------------------------------------------------
+      | GET FORM VALUES
+      |--------------------------------------------------------------------------
+      */
 
       const name =
         document
           .getElementById("name")
           .value
           .trim();
+
 
       const email =
         document
@@ -182,18 +297,41 @@ export function renderSignup(container) {
           .trim()
           .toLowerCase();
 
+
       const passwordValue =
         password.value;
 
-      button.disabled = true;
+
+      /*
+      |--------------------------------------------------------------------------
+      | DISABLE BUTTON
+      |--------------------------------------------------------------------------
+      */
+
+      button.disabled =
+        true;
+
+
       button.textContent =
         "Creating account...";
 
-      message.textContent = "";
+
+      message.textContent =
+        "";
+
+
       message.className =
         "auth-message";
 
+
       try {
+
+        /*
+        |--------------------------------------------------------------------------
+        | CALL EXISTING AUTH SYSTEM
+        |--------------------------------------------------------------------------
+        */
+
         const data =
           await signup(
             name,
@@ -201,54 +339,144 @@ export function renderSignup(container) {
             passwordValue
           );
 
+
         /*
-         * The backend must return an
-         * authenticated session.
-         */
+        |--------------------------------------------------------------------------
+        | VERIFY ACTIVE SESSION
+        |--------------------------------------------------------------------------
+        |
+        | We only open the chat when the backend
+        | actually returned an access token.
+        |
+        */
+
         if (
           !data?.session?.access_token
         ) {
+
           throw new Error(
             "Your account was created, but automatic login was not completed. Please log in."
           );
+
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUCCESS MESSAGE
+        |--------------------------------------------------------------------------
+        */
+
         message.textContent =
-          "Account created successfully! Opening SalonePadi AI...";
+          `Account created successfully! Opening ${CONFIG.appName}...`;
+
 
         message.className =
           "auth-message success-message";
 
+
         /*
-         * auth.js has already saved:
-         *
-         * salonepadi_access_token
-         * salonepadi_user
-         *
-         * Now open the AI chat.
-         */
-        setTimeout(() => {
-          window.location.hash =
-            "#/chat";
-        }, 300);
+        |--------------------------------------------------------------------------
+        | OPEN CHAT
+        |--------------------------------------------------------------------------
+        */
+
+        setTimeout(
+          () => {
+
+            window.location.hash =
+              "#/chat";
+
+          },
+          300
+        );
 
       } catch (error) {
+
         console.error(
           "Signup error:",
           error
         );
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | ERROR
+        |--------------------------------------------------------------------------
+        */
+
         message.textContent =
           error.message ||
           "Unable to create your account.";
 
+
         message.className =
           "auth-message error-message";
 
-        button.disabled = false;
+
+        button.disabled =
+          false;
+
+
         button.textContent =
           "Create Account";
+
       }
+
     }
   );
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| SAFE HTML ESCAPE
+|--------------------------------------------------------------------------
+|
+| Prevents branding values from being interpreted
+| as HTML.
+|
+|--------------------------------------------------------------------------
+*/
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| SAFE ATTRIBUTE ESCAPE
+|--------------------------------------------------------------------------
+*/
+
+function escapeAttribute(value) {
+
+  return escapeHTML(
+    value
+  );
+
 }
