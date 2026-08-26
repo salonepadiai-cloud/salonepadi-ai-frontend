@@ -2,21 +2,75 @@ import {
   login
 } from "../auth.js";
 
+import {
+  CONFIG
+} from "../config.js";
+
+
+/*
+|--------------------------------------------------------------------------
+| LOGIN PAGE
+|--------------------------------------------------------------------------
+|
+| Authentication remains handled by auth.js.
+|
+| Branding is loaded from CONFIG so:
+|
+|   CONFIG.appName
+|   CONFIG.logo
+|   CONFIG.logoAlt
+|
+| control the identity of the application.
+|
+|--------------------------------------------------------------------------
+*/
+
 export function renderLogin(container) {
+
   container.innerHTML = `
     <main class="auth-page">
 
       <section class="auth-container">
 
-        <div class="auth-logo">🦁</div>
 
-        <h1>Welcome back</h1>
+        <!-- =====================================================
+             APP LOGO
+             ===================================================== -->
+
+        <div class="auth-logo">
+
+          <img
+            src="${escapeAttribute(CONFIG.logo)}"
+            alt="${escapeAttribute(CONFIG.logoAlt)}"
+            class="auth-logo-image"
+          >
+
+        </div>
+
+
+        <!-- =====================================================
+             WELCOME
+             ===================================================== -->
+
+        <h1>
+          Welcome back
+        </h1>
+
 
         <p>
-          Log in to continue with SalonePadi AI.
+          Log in to continue with
+          ${escapeHTML(CONFIG.appName)}.
         </p>
 
+
+        <!-- =====================================================
+             LOGIN FORM
+             ===================================================== -->
+
         <form id="loginForm">
+
+
+          <!-- EMAIL -->
 
           <input
             id="email"
@@ -25,6 +79,9 @@ export function renderLogin(container) {
             autocomplete="email"
             required
           />
+
+
+          <!-- PASSWORD -->
 
           <div class="password-field">
 
@@ -35,6 +92,7 @@ export function renderLogin(container) {
               autocomplete="current-password"
               required
             />
+
 
             <button
               id="togglePassword"
@@ -48,6 +106,9 @@ export function renderLogin(container) {
 
           </div>
 
+
+          <!-- LOGIN BUTTON -->
+
           <button
             id="loginButton"
             type="submit"
@@ -55,12 +116,23 @@ export function renderLogin(container) {
             Log In
           </button>
 
+
         </form>
+
+
+        <!-- =====================================================
+             LOGIN MESSAGE
+             ===================================================== -->
 
         <p
           id="loginMessage"
           class="auth-message"
         ></p>
+
+
+        <!-- =====================================================
+             SIGNUP LINK
+             ===================================================== -->
 
         <button
           id="signupLink"
@@ -70,59 +142,80 @@ export function renderLogin(container) {
           Don't have an account? Create one
         </button>
 
+
       </section>
 
     </main>
   `;
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | ELEMENTS
+  |--------------------------------------------------------------------------
+  */
 
   const form =
     document.getElementById(
       "loginForm"
     );
 
+
   const message =
     document.getElementById(
       "loginMessage"
     );
+
 
   const button =
     document.getElementById(
       "loginButton"
     );
 
+
   const password =
     document.getElementById(
       "password"
     );
+
 
   const togglePassword =
     document.getElementById(
       "togglePassword"
     );
 
+
   const signupLink =
     document.getElementById(
       "signupLink"
     );
 
+
   /*
-   * Show / hide password
-   */
+  |--------------------------------------------------------------------------
+  | SHOW / HIDE PASSWORD
+  |--------------------------------------------------------------------------
+  */
+
   togglePassword.addEventListener(
     "click",
     () => {
+
       const hidden =
         password.type === "password";
+
 
       password.type =
         hidden
           ? "text"
           : "password";
 
+
       togglePassword.textContent =
         hidden
           ? "🙈"
           : "👁️";
+
 
       togglePassword.setAttribute(
         "aria-label",
@@ -131,33 +224,47 @@ export function renderLogin(container) {
           : "Show password"
       );
 
+
       togglePassword.setAttribute(
         "title",
         hidden
           ? "Hide password"
           : "Show password"
       );
+
     }
   );
 
+
   /*
-   * Go to signup
-   */
+  |--------------------------------------------------------------------------
+  | GO TO SIGNUP
+  |--------------------------------------------------------------------------
+  */
+
   signupLink.addEventListener(
     "click",
     () => {
+
       window.location.hash =
         "#/signup";
+
     }
   );
 
+
   /*
-   * Login
-   */
+  |--------------------------------------------------------------------------
+  | LOGIN
+  |--------------------------------------------------------------------------
+  */
+
   form.addEventListener(
     "submit",
     async (event) => {
+
       event.preventDefault();
+
 
       const email =
         document
@@ -166,69 +273,177 @@ export function renderLogin(container) {
           .trim()
           .toLowerCase();
 
+
       const passwordValue =
         password.value;
 
-      button.disabled = true;
+
+      /*
+      |--------------------------------------------------------------------------
+      | DISABLE BUTTON WHILE LOGIN IS PROCESSING
+      |--------------------------------------------------------------------------
+      */
+
+      button.disabled =
+        true;
+
+
       button.textContent =
         "Logging in...";
 
-      message.textContent = "";
+
+      message.textContent =
+        "";
+
+
       message.className =
         "auth-message";
 
+
       try {
+
+        /*
+        |--------------------------------------------------------------------------
+        | CALL EXISTING AUTH SYSTEM
+        |--------------------------------------------------------------------------
+        */
+
         const data =
           await login(
             email,
             passwordValue
           );
 
+
         /*
-         * Login is only successful if
-         * the backend returned a real
-         * access token.
-         */
+        |--------------------------------------------------------------------------
+        | VERIFY ACTIVE SESSION
+        |--------------------------------------------------------------------------
+        |
+        | Do not redirect unless auth.js/backend
+        | returned a real access token.
+        |
+        */
+
         if (
           !data?.session?.access_token
         ) {
+
           throw new Error(
             "Login succeeded, but no active session was returned."
           );
+
         }
 
+
+        /*
+        |--------------------------------------------------------------------------
+        | SUCCESS
+        |--------------------------------------------------------------------------
+        */
+
         message.textContent =
-          "Login successful! Opening SalonePadi AI...";
+          `Login successful! Opening ${CONFIG.appName}...`;
+
 
         message.className =
           "auth-message success-message";
 
+
         /*
-         * auth.js already saved the
-         * token and user.
-         */
-        setTimeout(() => {
-          window.location.hash =
-            "#/chat";
-        }, 300);
+        |--------------------------------------------------------------------------
+        | OPEN CHAT
+        |--------------------------------------------------------------------------
+        */
+
+        setTimeout(
+          () => {
+
+            window.location.hash =
+              "#/chat";
+
+          },
+          300
+        );
 
       } catch (error) {
+
         console.error(
           "Login error:",
           error
         );
 
+
         message.textContent =
           error.message ||
           "Unable to log in.";
 
+
         message.className =
           "auth-message error-message";
 
-        button.disabled = false;
+
+        button.disabled =
+          false;
+
+
         button.textContent =
           "Log In";
+
       }
+
     }
   );
+
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| SAFE HTML ESCAPE
+|--------------------------------------------------------------------------
+|
+| Prevents CONFIG branding values from being
+| interpreted as HTML.
+|
+|--------------------------------------------------------------------------
+*/
+
+function escapeHTML(value) {
+
+  return String(value ?? "")
+    .replace(
+      /&/g,
+      "&amp;"
+    )
+    .replace(
+      /</g,
+      "&lt;"
+    )
+    .replace(
+      />/g,
+      "&gt;"
+    )
+    .replace(
+      /"/g,
+      "&quot;"
+    )
+    .replace(
+      /'/g,
+      "&#039;"
+    );
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| SAFE ATTRIBUTE ESCAPE
+|--------------------------------------------------------------------------
+*/
+
+function escapeAttribute(value) {
+
+  return escapeHTML(value);
+
+    }
