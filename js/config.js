@@ -5,11 +5,11 @@ export const CONFIG = {
   |--------------------------------------------------------------------------
   */
 
-  appName: "Johnny Tec OS",
+  appName: "SalonePadi AI",
 
-  logo: "assets/images/johnny-tec-os.png",
+  logo: "assets/images/salonepadi-ai.png",
 
-  logoAlt: "Johnny Tec OS",
+  logoAlt: "SalonePadi AI",
 
 
   /*
