@@ -8,101 +8,191 @@ import {
   clearStorage
 } from "./utils/storage.js";
 
-let refreshPromise = null;
 
 /*
 |--------------------------------------------------------------------------
-| Refresh session
+| Johnny Tec OS
+| API CLIENT
 |--------------------------------------------------------------------------
 |
-| Uses the stored Supabase refresh token to obtain
-| a new access token when the current one expires.
+| This file is responsible ONLY for:
 |
+| - GET requests
+| - POST requests
+| - PATCH requests
+| - DELETE requests
+| - Authentication headers
+| - Session refresh
+| - Backend error handling
+|
+|--------------------------------------------------------------------------
+*/
+
+
+let refreshPromise = null;
+
+
+/*
+|--------------------------------------------------------------------------
+| BUILD API URL
+|--------------------------------------------------------------------------
+*/
+
+function buildUrl(endpoint) {
+
+  const base =
+    String(CONFIG.apiUrl || "")
+      .replace(/\/+$/, "");
+
+  const path =
+    String(endpoint || "");
+
+  if (!base) {
+
+    throw new Error(
+      "Johnny Tec OS backend URL is not configured."
+    );
+
+  }
+
+  return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| REFRESH SESSION
+|--------------------------------------------------------------------------
 */
 
 async function refreshSession() {
+
   const refreshToken =
     getRefreshToken();
 
+
   if (!refreshToken) {
+
     return false;
+
   }
+
 
   /*
-   * Prevent multiple requests from refreshing
-   * the session at the same time.
+   * Prevent multiple simultaneous
+   * refresh requests.
    */
+
   if (refreshPromise) {
+
     return refreshPromise;
+
   }
 
-  refreshPromise = (async () => {
-    try {
-      const response = await fetch(
-        `${CONFIG.apiUrl}/api/auth/refresh`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            refresh_token: refreshToken
-          })
+
+  refreshPromise =
+    (async () => {
+
+      try {
+
+        const response =
+          await fetch(
+            buildUrl(
+              "/api/auth/refresh"
+            ),
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json"
+              },
+
+              body:
+                JSON.stringify({
+                  refresh_token:
+                    refreshToken
+                })
+            }
+          );
+
+
+        const contentType =
+          response.headers.get(
+            "content-type"
+          ) || "";
+
+
+        let data = null;
+
+
+        if (
+          contentType.includes(
+            "application/json"
+          )
+        ) {
+
+          data =
+            await response.json();
+
         }
-      );
 
-      const contentType =
-        response.headers.get(
-          "content-type"
-        ) || "";
 
-      const data =
-        contentType.includes(
-          "application/json"
-        )
-          ? await response.json()
-          : null;
+        if (
+          !response.ok ||
+          !data?.session?.access_token
+        ) {
 
-      if (
-        !response.ok ||
-        !data?.session?.access_token
-      ) {
-        return false;
-      }
+          return false;
 
-      saveToken(
-        data.session.access_token
-      );
+        }
 
-      if (
-        data.session.refresh_token
-      ) {
-        saveRefreshToken(
-          data.session.refresh_token
+
+        saveToken(
+          data.session.access_token
         );
+
+
+        if (
+          data.session.refresh_token
+        ) {
+
+          saveRefreshToken(
+            data.session.refresh_token
+          );
+
+        }
+
+
+        return true;
+
+      } catch (error) {
+
+        console.error(
+          "Johnny Tec OS session refresh error:",
+          error
+        );
+
+        return false;
+
+      } finally {
+
+        refreshPromise = null;
+
       }
 
-      return true;
+    })();
 
-    } catch (error) {
-      console.error(
-        "Session refresh error:",
-        error
-      );
-
-      return false;
-
-    } finally {
-      refreshPromise = null;
-    }
-  })();
 
   return refreshPromise;
+
 }
+
 
 /*
 |--------------------------------------------------------------------------
-| API request
+| API REQUEST
 |--------------------------------------------------------------------------
 */
 
@@ -111,169 +201,295 @@ async function request(
   options = {},
   retry = true
 ) {
-  if (!CONFIG.apiUrl) {
-    throw new Error(
-      "Backend API URL has not been configured."
-    );
-  }
+
+  const url =
+    buildUrl(endpoint);
+
+
+  /*
+   * Get the latest access token.
+   */
 
   const token =
     getToken();
 
+
+  /*
+   * Build headers.
+   */
+
   const headers = {
+
+    Accept:
+      "application/json",
+
     "Content-Type":
       "application/json",
+
     ...(options.headers || {})
+
   };
 
+
+  /*
+   * Add authentication.
+   */
+
   if (token) {
+
     headers.Authorization =
       `Bearer ${token}`;
+
   }
+
 
   let response;
 
+
+  /*
+   * Send request.
+   */
+
   try {
-    response = await fetch(
-      `${CONFIG.apiUrl}${endpoint}`,
-      {
-        ...options,
-        headers
-      }
-    );
+
+    response =
+      await fetch(
+        url,
+        {
+          ...options,
+          headers
+        }
+      );
 
   } catch (error) {
+
     console.error(
-      "API connection error:",
+      "Johnny Tec OS API connection error:",
       error
     );
 
+
     throw new Error(
-      "Unable to connect to SalonePadi AI server."
+      "Unable to connect to the Johnny Tec OS server."
     );
+
   }
 
+
   /*
-   * If the access token expired,
-   * refresh it and retry the request once.
+   |--------------------------------------------------------------------------
+   | ACCESS TOKEN EXPIRED
+   |--------------------------------------------------------------------------
    */
+
   if (
     response.status === 401 &&
     retry
   ) {
+
     const refreshed =
       await refreshSession();
 
+
     if (refreshed) {
+
       return request(
         endpoint,
         options,
         false
       );
+
     }
 
+
     /*
-     * Refresh failed, so the session
-     * is genuinely no longer valid.
+     * Refresh failed.
      */
+
     clearStorage();
+
 
     throw new Error(
       "Your session has expired. Please log in again."
     );
+
   }
+
+
+  /*
+   |--------------------------------------------------------------------------
+   | READ RESPONSE
+   |--------------------------------------------------------------------------
+   */
 
   const contentType =
     response.headers.get(
       "content-type"
     ) || "";
 
+
   let data;
+
 
   if (
     contentType.includes(
       "application/json"
     )
   ) {
-    data =
-      await response.json();
+
+    try {
+
+      data =
+        await response.json();
+
+    } catch (error) {
+
+      console.error(
+        "Johnny Tec OS JSON response error:",
+        error
+      );
+
+      throw new Error(
+        "The server returned an invalid response."
+      );
+
+    }
+
   } else {
+
     const text =
       await response.text();
 
     data = {
       message: text
     };
+
   }
+
+
+  /*
+   |--------------------------------------------------------------------------
+   | BACKEND ERROR
+   |--------------------------------------------------------------------------
+   */
 
   if (!response.ok) {
+
     const message =
-      typeof data === "object"
-        ? data?.error ||
-          data?.message ||
-          "Request failed."
-        : data;
+      data?.error ||
+      data?.message ||
+      data?.details ||
+      `Request failed with status ${response.status}.`;
+
 
     throw new Error(
-      message ||
-      "Request failed."
+      String(message)
     );
+
   }
 
+
+  /*
+   |--------------------------------------------------------------------------
+   | SUCCESS
+   |--------------------------------------------------------------------------
+   */
+
   return data;
+
 }
+
 
 /*
 |--------------------------------------------------------------------------
-| Public API
+| PUBLIC API
 |--------------------------------------------------------------------------
 */
 
 export const api = {
 
+
+  /*
+   |--------------------------------------------------------------------------
+   | GET
+   |--------------------------------------------------------------------------
+   */
+
   get(endpoint) {
+
     return request(
       endpoint,
       {
         method: "GET"
       }
     );
+
   },
+
+
+  /*
+   |--------------------------------------------------------------------------
+   | POST
+   |--------------------------------------------------------------------------
+   */
 
   post(
     endpoint,
     body = {}
   ) {
+
     return request(
       endpoint,
       {
         method: "POST",
+
         body:
           JSON.stringify(body)
       }
     );
+
   },
+
+
+  /*
+   |--------------------------------------------------------------------------
+   | PATCH
+   |--------------------------------------------------------------------------
+   */
 
   patch(
     endpoint,
     body = {}
   ) {
+
     return request(
       endpoint,
       {
         method: "PATCH",
+
         body:
           JSON.stringify(body)
       }
     );
+
   },
 
+
+  /*
+   |--------------------------------------------------------------------------
+   | DELETE
+   |--------------------------------------------------------------------------
+   */
+
   delete(endpoint) {
+
     return request(
       endpoint,
       {
         method: "DELETE"
       }
     );
+
   }
+
 };
