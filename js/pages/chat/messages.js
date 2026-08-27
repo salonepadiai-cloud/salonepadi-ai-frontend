@@ -1,5 +1,5 @@
 /* =========================================
-   SALONEPADI AI — MESSAGE MODULE
+   JOHNNY TEC OS — MESSAGE MODULE
    =========================================
 
    RESPONSIBILITY:
@@ -7,13 +7,15 @@
    - Render messages
    - Append messages
    - Clear messages
+   - Show chat status
    - Scroll chat to bottom
+   - Expose message actions to Chat Controller
 
    This module does NOT:
    - Call the backend
    - Manage authentication
    - Manage conversations
-   - Manage chat state
+   - Send messages
    ========================================= */
 
 
@@ -21,40 +23,277 @@
    INITIALIZE MESSAGES
    ========================================= */
 
-export function initializeMessages(context = {}) {
+export function initializeMessages(
+  context = {}
+) {
 
   const {
+    elements = {},
+    state = null,
     messagesContainer,
     getMessages
   } = context;
 
 
-  if (!messagesContainer) {
-    console.warn(
-      "SalonePadi AI: messages container not found."
-    );
-
-    return;
-  }
-
-
   /*
-  |--------------------------------------------------------------------------
-  | RENDER EXISTING MESSAGES
-  |--------------------------------------------------------------------------
-  */
+   * Support the new Chat Shell interface.
+   *
+   * Also keep compatibility with the older
+   * direct messagesContainer interface.
+   */
 
-  if (typeof getMessages === "function") {
+  const container =
+    elements.messages ||
+    elements.chatMessages ||
+    elements.messagesContainer ||
+    messagesContainer;
 
-    const messages =
-      getMessages() || [];
 
-    renderMessages(
-      messagesContainer,
-      messages
+  if (!container) {
+
+    console.warn(
+      "Johnny Tec OS: messages container not found."
+    );
+
+    return {
+      cleanup() {},
+      addMessage() {},
+      showStatus() {}
+    };
+
+  }
+
+
+  /* =========================================
+     GET CURRENT MESSAGES
+     ========================================= */
+
+  function readMessages() {
+
+    /*
+     * Prefer supplied getter.
+     */
+
+    if (
+      typeof getMessages === "function"
+    ) {
+
+      return getMessages() || [];
+
+    }
+
+
+    /*
+     * Try Chat State.
+     */
+
+    if (
+      state &&
+      typeof state.getMessages === "function"
+    ) {
+
+      return state.getMessages() || [];
+
+    }
+
+
+    /*
+     * Try state.messages.
+     */
+
+    if (
+      state &&
+      Array.isArray(state.messages)
+    ) {
+
+      return state.messages;
+
+    }
+
+
+    return [];
+
+  }
+
+
+  /* =========================================
+     RENDER EXISTING MESSAGES
+     ========================================= */
+
+  renderMessages(
+    container,
+    readMessages()
+  );
+
+
+  /* =========================================
+     ADD MESSAGE
+     ========================================= */
+
+  function addMessage(
+    role,
+    content
+  ) {
+
+    if (!content) {
+      return null;
+    }
+
+
+    const message = {
+
+      role:
+        role === "user"
+          ? "user"
+          : "assistant",
+
+      content:
+        String(content)
+
+    };
+
+
+    /*
+     * Keep state synchronized when the
+     * state module exposes addMessage().
+     */
+
+    if (
+      state &&
+      typeof state.addMessage ===
+      "function"
+    ) {
+
+      try {
+
+        state.addMessage(
+          message
+        );
+
+      } catch (error) {
+
+        console.warn(
+          "Johnny Tec OS: state.addMessage() failed:",
+          error
+        );
+
+      }
+
+    }
+
+
+    return appendMessage(
+      container,
+      message
     );
 
   }
+
+
+  /* =========================================
+     SHOW STATUS
+     ========================================= */
+
+  function showStatus(
+    message = "",
+    isError = false
+  ) {
+
+    const status =
+      elements.chatStatus ||
+      elements.status ||
+      document.getElementById(
+        "chatStatus"
+      );
+
+
+    if (!status) {
+      return;
+    }
+
+
+    status.textContent =
+      String(message || "");
+
+
+    status.classList.toggle(
+      "chat-error",
+      Boolean(isError)
+    );
+
+
+    /*
+     * Empty status after successful
+     * operations.
+     */
+
+    if (!message) {
+
+      status.classList.remove(
+        "chat-error"
+      );
+
+    }
+
+  }
+
+
+  /* =========================================
+     CLEANUP
+     ========================================= */
+
+  function cleanup() {
+
+    /*
+     * Do not destroy the container here.
+     *
+     * The Chat Controller owns the shell.
+     */
+
+  }
+
+
+  /* =========================================
+     PUBLIC MODULE API
+     ========================================= */
+
+  return {
+
+    cleanup,
+
+    addMessage,
+
+    showStatus,
+
+    renderMessages:
+      () => {
+
+        renderMessages(
+          container,
+          readMessages()
+        );
+
+      },
+
+    clearMessages:
+      () => {
+
+        clearMessages(
+          container
+        );
+
+      },
+
+    scrollToBottom:
+      () => {
+
+        scrollToBottom(
+          container
+        );
+
+      }
+
+  };
 
 }
 
@@ -73,11 +312,19 @@ export function renderMessages(
   }
 
 
-  container.innerHTML = "";
+  container.innerHTML =
+    "";
+
+
+  if (!Array.isArray(messages)) {
+
+    messages = [];
+
+  }
 
 
   messages.forEach(
-    (message) => {
+    message => {
 
       appendMessage(
         container,
@@ -88,7 +335,9 @@ export function renderMessages(
   );
 
 
-  scrollToBottom(container);
+  scrollToBottom(
+    container
+  );
 
 }
 
@@ -108,17 +357,20 @@ export function appendMessage(
 
 
   const role =
-    message.role || "assistant";
+    message.role ||
+    "assistant";
 
 
   const content =
-    message.content ||
-    message.text ||
+    message.content ??
+    message.text ??
     "";
 
 
   const row =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
 
   row.className =
@@ -129,8 +381,14 @@ export function appendMessage(
     }`;
 
 
+  /* =========================================
+     AVATAR
+     ========================================= */
+
   const avatar =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
 
   avatar.className =
@@ -143,8 +401,14 @@ export function appendMessage(
       : "🦁";
 
 
+  /* =========================================
+     BUBBLE
+     ========================================= */
+
   const bubble =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
 
   bubble.className =
@@ -155,8 +419,14 @@ export function appendMessage(
     }`;
 
 
+  /* =========================================
+     MESSAGE TEXT
+     ========================================= */
+
   const text =
-    document.createElement("div");
+    document.createElement(
+      "div"
+    );
 
 
   text.className =
@@ -167,16 +437,33 @@ export function appendMessage(
     String(content);
 
 
-  bubble.appendChild(text);
+  /* =========================================
+     BUILD
+     ========================================= */
 
-  row.appendChild(avatar);
-
-  row.appendChild(bubble);
-
-  container.appendChild(row);
+  bubble.appendChild(
+    text
+  );
 
 
-  scrollToBottom(container);
+  row.appendChild(
+    avatar
+  );
+
+
+  row.appendChild(
+    bubble
+  );
+
+
+  container.appendChild(
+    row
+  );
+
+
+  scrollToBottom(
+    container
+  );
 
 
   return row;
@@ -197,7 +484,8 @@ export function clearMessages(
   }
 
 
-  container.innerHTML = "";
+  container.innerHTML =
+    "";
 
 }
 
@@ -223,5 +511,4 @@ export function scrollToBottom(
 
     }
   );
-
 }
