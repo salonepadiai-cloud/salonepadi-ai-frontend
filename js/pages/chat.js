@@ -4,23 +4,16 @@
 
    RESPONSIBILITY:
    This file ONLY coordinates the Chat page.
-
-   It does NOT contain:
-   - Message rendering
-   - Conversation logic
-   - Composer logic
-   - Sidebar logic
-   - AI formatting
-   - Audio logic
-   - Profile logic
-   - Settings logic
-   - Backend chat implementation
    ========================================= */
 
 import {
   authenticated,
   currentUser
 } from "../auth.js";
+
+import {
+  api
+} from "../api.js";
 
 import {
   createChatState
@@ -70,7 +63,7 @@ export async function renderChat(container) {
 
 
   /* =========================================
-     1. AUTH CHECK
+     1. AUTHENTICATION
      ========================================= */
 
   if (!authenticated()) {
@@ -118,7 +111,7 @@ export async function renderChat(container) {
 
 
   /* =========================================
-     4. CREATE STATE
+     4. CREATE CHAT STATE
      ========================================= */
 
   let state;
@@ -205,6 +198,16 @@ export async function renderChat(container) {
   let featuresCleanup = null;
 
 
+  /*
+   * Message actions supplied by messages.js.
+   *
+   * We keep these outside the initializer so
+   * the Composer can use the same message layer.
+   */
+
+  let messageActions = {};
+
+
   /* =========================================
      6. SIDEBAR
      ========================================= */
@@ -240,7 +243,8 @@ export async function renderChat(container) {
         elements,
         state,
         user,
-        displayName
+        displayName,
+        api
       });
 
   } catch (error) {
@@ -255,23 +259,48 @@ export async function renderChat(container) {
 
   /* =========================================
      8. MESSAGES
-     =========================================
-     
-     IMPORTANT:
-     Messages are initialized BEFORE
-     the composer so the composer has
-     a ready message system to work with.
      ========================================= */
 
   try {
 
-    messagesCleanup =
+    const result =
       await initializeMessages({
         elements,
         state,
         user,
         displayName
       });
+
+
+    /*
+     * messages.js may return its public
+     * actions/cleanup object.
+     */
+
+    if (
+      result &&
+      typeof result === "object"
+    ) {
+
+      messageActions = result;
+
+      if (
+        typeof result.cleanup === "function"
+      ) {
+
+        messagesCleanup =
+          result.cleanup;
+
+      }
+
+    } else if (
+      typeof result === "function"
+    ) {
+
+      messagesCleanup =
+        result;
+
+    }
 
   } catch (error) {
 
@@ -291,10 +320,101 @@ export async function renderChat(container) {
 
     composerCleanup =
       await initializeComposer({
+
         elements,
+
         state,
+
         user,
-        displayName
+
+        displayName,
+
+        /*
+         * THIS WAS MISSING.
+         *
+         * Composer now receives the real
+         * backend API client.
+         */
+
+        api,
+
+        /*
+         * Connect Composer to Messages.
+         */
+
+        actions: {
+
+          addMessage:
+            typeof messageActions.addMessage ===
+            "function"
+
+              ? messageActions.addMessage
+
+              : (
+                  role,
+                  content
+                ) => {
+
+                  console.warn(
+                    "Messages module has no addMessage() action."
+                  );
+
+                },
+
+
+          showStatus:
+            typeof messageActions.showStatus ===
+            "function"
+
+              ? messageActions.showStatus
+
+              : (
+                  message,
+                  error = false
+                ) => {
+
+                  if (
+                    elements.chatStatus
+                  ) {
+
+                    elements.chatStatus.textContent =
+                      message || "";
+
+                    elements.chatStatus.classList.toggle(
+                      "error",
+                      Boolean(error)
+                    );
+
+                  }
+
+                },
+
+
+          onConversationChanged:
+            async (
+              change = {}
+            ) => {
+
+              /*
+               * Notify conversation module
+               * if it exposes the action.
+               */
+
+              if (
+                typeof messageActions.onConversationChanged ===
+                "function"
+              ) {
+
+                return messageActions.onConversationChanged(
+                  change
+                );
+
+              }
+
+            }
+
+        }
+
       });
 
   } catch (error) {
@@ -315,18 +435,20 @@ export async function renderChat(container) {
 
     featuresCleanup =
       await loadChatFeatures({
+
         elements,
+
         state,
+
         user,
-        displayName
+
+        displayName,
+
+        api
+
       });
 
   } catch (error) {
-
-    /*
-     * Optional features must NEVER
-     * destroy the main chat.
-     */
 
     console.warn(
       "Optional chat features failed:",
@@ -337,7 +459,7 @@ export async function renderChat(container) {
 
 
   /* =========================================
-     11. CLEANUP FUNCTION
+     11. CLEANUP
      ========================================= */
 
   const cleanup = () => {
@@ -351,12 +473,18 @@ export async function renderChat(container) {
     ];
 
 
-    for (const moduleCleanup of cleanups) {
+    for (
+      const moduleCleanup
+      of cleanups
+    ) {
 
       if (
-        typeof moduleCleanup !== "function"
+        typeof moduleCleanup !==
+        "function"
       ) {
+
         continue;
+
       }
 
 
@@ -390,23 +518,32 @@ export async function renderChat(container) {
     }
 
 
-    if (activeCleanup === cleanup) {
+    if (
+      activeCleanup === cleanup
+    ) {
+
       activeCleanup = null;
+
     }
 
   };
 
 
-  activeCleanup = cleanup;
+  activeCleanup =
+    cleanup;
 
 
   /* =========================================
-     12. CHAT READY
+     CHAT READY
      ========================================= */
 
   return {
+
     state,
+
     elements,
+
     cleanup
+
   };
 }
