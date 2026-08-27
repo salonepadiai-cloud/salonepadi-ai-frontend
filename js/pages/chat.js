@@ -15,9 +15,6 @@
    - Profile logic
    - Settings logic
    - Backend chat implementation
-
-   Those responsibilities belong to their
-   own modules.
    ========================================= */
 
 import {
@@ -42,12 +39,12 @@ import {
 } from "./chat/conversations.js";
 
 import {
-  initializeComposer
-} from "./chat/composer.js";
-
-import {
   initializeMessages
 } from "./chat/messages.js";
+
+import {
+  initializeComposer
+} from "./chat/composer.js";
 
 import {
   loadChatFeatures
@@ -64,28 +61,36 @@ let activeCleanup = null;
 export async function renderChat(container) {
 
   if (!container) {
+    console.error(
+      "SalonePadi AI: Chat container was not found."
+    );
+
     return;
   }
 
 
-  /* -----------------------------------------
-     1. CHECK AUTHENTICATION
-     ----------------------------------------- */
+  /* =========================================
+     1. AUTH CHECK
+     ========================================= */
 
   if (!authenticated()) {
+
     window.location.hash = "#/login";
+
     return;
   }
 
 
-  /* -----------------------------------------
-     CLEAN PREVIOUS CHAT INSTANCE
-     ----------------------------------------- */
+  /* =========================================
+     2. CLEAN PREVIOUS CHAT
+     ========================================= */
 
   if (typeof activeCleanup === "function") {
 
     try {
+
       activeCleanup();
+
     } catch (error) {
 
       console.warn(
@@ -99,9 +104,9 @@ export async function renderChat(container) {
   }
 
 
-  /* -----------------------------------------
-     CURRENT USER
-     ----------------------------------------- */
+  /* =========================================
+     3. CURRENT USER
+     ========================================= */
 
   const user = currentUser();
 
@@ -112,42 +117,97 @@ export async function renderChat(container) {
     "User";
 
 
-  /* -----------------------------------------
-     2. CREATE CHAT STATE
-     ----------------------------------------- */
+  /* =========================================
+     4. CREATE STATE
+     ========================================= */
 
-  const state =
-    createChatState();
+  let state;
 
+  try {
 
-  /* -----------------------------------------
-     3. CREATE CHAT SHELL
-     ----------------------------------------- */
+    state = createChatState();
 
-  const elements =
-    createChatShell(
-      container,
-      {
-        user,
-        displayName
-      }
-    );
+  } catch (error) {
 
-
-  if (!elements) {
     console.error(
-      "Chat shell could not be created."
+      "Chat state creation failed:",
+      error
     );
 
     return;
   }
 
 
-  /* -----------------------------------------
-     4. INITIALIZE SIDEBAR
-     ----------------------------------------- */
+  if (!state) {
+
+    console.error(
+      "SalonePadi AI: createChatState() returned nothing."
+    );
+
+    return;
+  }
+
+
+  /* =========================================
+     5. CREATE CHAT SHELL
+     ========================================= */
+
+  let elements;
+
+  try {
+
+    elements =
+      createChatShell(
+        container,
+        {
+          user,
+          displayName
+        }
+      );
+
+  } catch (error) {
+
+    console.error(
+      "Chat shell creation failed:",
+      error
+    );
+
+    try {
+      state.destroy();
+    } catch (_) {}
+
+    return;
+  }
+
+
+  if (!elements) {
+
+    console.error(
+      "SalonePadi AI: Chat shell could not be created."
+    );
+
+    try {
+      state.destroy();
+    } catch (_) {}
+
+    return;
+  }
+
+
+  /* =========================================
+     MODULE CLEANUPS
+     ========================================= */
 
   let sidebarCleanup = null;
+  let conversationsCleanup = null;
+  let messagesCleanup = null;
+  let composerCleanup = null;
+  let featuresCleanup = null;
+
+
+  /* =========================================
+     6. SIDEBAR
+     ========================================= */
 
   try {
 
@@ -169,11 +229,9 @@ export async function renderChat(container) {
   }
 
 
-  /* -----------------------------------------
-     5. INITIALIZE CONVERSATIONS
-     ----------------------------------------- */
-
-  let conversationsCleanup = null;
+  /* =========================================
+     7. CONVERSATIONS
+     ========================================= */
 
   try {
 
@@ -181,7 +239,8 @@ export async function renderChat(container) {
       await initializeConversations({
         elements,
         state,
-        user
+        user,
+        displayName
       });
 
   } catch (error) {
@@ -194,37 +253,15 @@ export async function renderChat(container) {
   }
 
 
-  /* -----------------------------------------
-     6. INITIALIZE COMPOSER
-     ----------------------------------------- */
-
-  let composerCleanup = null;
-
-  try {
-
-    composerCleanup =
-      await initializeComposer({
-        elements,
-        state,
-        user,
-        displayName
-      });
-
-  } catch (error) {
-
-    console.error(
-      "Composer initialization failed:",
-      error
-    );
-
-  }
-
-
-  /* -----------------------------------------
-     7. INITIALIZE MESSAGES
-     ----------------------------------------- */
-
-  let messagesCleanup = null;
+  /* =========================================
+     8. MESSAGES
+     =========================================
+     
+     IMPORTANT:
+     Messages are initialized BEFORE
+     the composer so the composer has
+     a ready message system to work with.
+     ========================================= */
 
   try {
 
@@ -246,32 +283,49 @@ export async function renderChat(container) {
   }
 
 
-  /* -----------------------------------------
-     8. OPTIONAL FEATURES
-     ----------------------------------------- */
+  /* =========================================
+     9. COMPOSER
+     ========================================= */
 
-  let featuresCleanup = null;
+  try {
+
+    composerCleanup =
+      await initializeComposer({
+        elements,
+        state,
+        user,
+        displayName
+      });
+
+  } catch (error) {
+
+    console.error(
+      "Composer initialization failed:",
+      error
+    );
+
+  }
+
+
+  /* =========================================
+     10. OPTIONAL FEATURES
+     ========================================= */
 
   try {
 
     featuresCleanup =
       await loadChatFeatures({
-
         elements,
-
         state,
-
         user,
-
         displayName
-
       });
 
   } catch (error) {
 
     /*
      * Optional features must NEVER
-     * break the main chat.
+     * destroy the main chat.
      */
 
     console.warn(
@@ -282,25 +336,25 @@ export async function renderChat(container) {
   }
 
 
-  /* -----------------------------------------
-     9. CLEANUP
-     ----------------------------------------- */
+  /* =========================================
+     11. CLEANUP FUNCTION
+     ========================================= */
 
-  activeCleanup = () => {
+  const cleanup = () => {
 
     const cleanups = [
       featuresCleanup,
-      messagesCleanup,
       composerCleanup,
+      messagesCleanup,
       conversationsCleanup,
       sidebarCleanup
     ];
 
 
-    for (const cleanup of cleanups) {
+    for (const moduleCleanup of cleanups) {
 
       if (
-        typeof cleanup !== "function"
+        typeof moduleCleanup !== "function"
       ) {
         continue;
       }
@@ -308,7 +362,7 @@ export async function renderChat(container) {
 
       try {
 
-        cleanup();
+        moduleCleanup();
 
       } catch (error) {
 
@@ -336,17 +390,23 @@ export async function renderChat(container) {
     }
 
 
-    activeCleanup = null;
+    if (activeCleanup === cleanup) {
+      activeCleanup = null;
+    }
+
   };
 
 
-  /* -----------------------------------------
-     CHAT READY
-     ----------------------------------------- */
+  activeCleanup = cleanup;
+
+
+  /* =========================================
+     12. CHAT READY
+     ========================================= */
 
   return {
     state,
     elements,
-    cleanup: activeCleanup
+    cleanup
   };
 }
