@@ -1,0 +1,28 @@
+/* =========================================================
+   JOHNNY TEC OS
+   RESPONSIVE FOUNDATION
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  body {
+    overflow-x: hidden;
+  }
+
+
+  #app {
+    width: 100%;
+  }
+
+}
+
+
+@media (min-width: 769px) {
+
+  #app {
+    width: 100%;
+    max-width: var(--max-width);
+    margin: 0 auto;
+  }
+
+}
