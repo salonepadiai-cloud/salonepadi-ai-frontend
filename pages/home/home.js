@@ -6,7 +6,11 @@
 import "./home.css";
 
 
-export async function renderHome(container) {
+/* =========================================================
+   RENDER HOME
+   ========================================================= */
+
+export function renderHome(container) {
 
   if (!container) {
     return;
@@ -16,7 +20,10 @@ export async function renderHome(container) {
   container.innerHTML = `
     <main class="home-page">
 
-      <!-- TOP BAR -->
+      <!-- =================================================
+           TOP BAR
+           ================================================= -->
+
       <header class="top-bar">
 
         <button
@@ -35,36 +42,42 @@ export async function renderHome(container) {
           </div>
 
           <div class="brand-text">
-            <strong>Johnny Tec OS</strong>
-            <small>Your AI Assistant</small>
+            <strong>JOHNNY TEC OS</strong>
+            <small>Your intelligent AI assistant</small>
           </div>
 
         </div>
 
 
         <button
-          class="icon-button notification-button"
+          class="icon-button"
           type="button"
           aria-label="Notifications"
         >
           ♧
-          <span class="notification-dot"></span>
         </button>
 
       </header>
 
 
-      <!-- HERO -->
+      <!-- =================================================
+           HERO
+           ================================================= -->
+
       <section class="hero-card">
 
         <div class="hero-content">
 
+          <span class="hero-label">
+            JOHNNY TEC OS
+          </span>
+
           <h1>
-            Good morning, John 👋
+            Welcome back 👋
           </h1>
 
           <p>
-            How can I help you today?
+            What would you like me to help you with?
           </p>
 
         </div>
@@ -84,15 +97,6 @@ export async function renderHome(container) {
 
 
           <button
-            type="button"
-            class="mic-button"
-            aria-label="Voice input"
-          >
-            ♫
-          </button>
-
-
-          <button
             type="submit"
             class="send-button"
             aria-label="Send message"
@@ -105,33 +109,58 @@ export async function renderHome(container) {
       </section>
 
 
-      <!-- QUICK ACTIONS -->
+      <!-- =================================================
+           QUICK ACTIONS
+           ================================================= -->
+
       <section class="quick-actions">
 
-        <button class="action-card action-purple">
+        <button
+          class="action-card"
+          data-route="chat"
+          type="button"
+        >
+          <span class="action-icon">◉</span>
+          <span>Chat</span>
+        </button>
+
+
+        <button
+          class="action-card"
+          data-route="tools"
+          type="button"
+        >
+          <span class="action-icon">⊞</span>
+          <span>Tools</span>
+        </button>
+
+
+        <button
+          class="action-card"
+          data-route="documents"
+          type="button"
+        >
           <span class="action-icon">▤</span>
-          <span>Summarize</span>
+          <span>Documents</span>
         </button>
 
-        <button class="action-card action-green">
-          <span class="action-icon">✎</span>
-          <span>Write</span>
-        </button>
 
-        <button class="action-card action-blue">
+        <button
+          class="action-card"
+          data-route="code"
+          type="button"
+        >
           <span class="action-icon">&lt;/&gt;</span>
           <span>Code</span>
-        </button>
-
-        <button class="action-card action-orange">
-          <span class="action-icon">▥</span>
-          <span>Analyze</span>
         </button>
 
       </section>
 
 
-      <!-- SYSTEM STATUS -->
+      <!-- =================================================
+           JOHNNY STATUS
+           ================================================= -->
+
       <section class="dashboard-card">
 
         <div class="section-heading">
@@ -140,162 +169,32 @@ export async function renderHome(container) {
 
             <span class="status-dot"></span>
 
-            <h2>System Status</h2>
+            <h2>Johnny is ready</h2>
 
           </div>
-
-          <span class="status-text">
-            All systems operational
-          </span>
 
         </div>
 
 
-        <div class="system-stat">
-          <div class="stat-label">
-            <span>⚙</span>
-            <span>CPU Usage</span>
-            <strong>24%</strong>
-          </div>
-
-          <div class="progress">
-            <span style="width:24%"></span>
-          </div>
-        </div>
-
-
-        <div class="system-stat">
-          <div class="stat-label">
-            <span>▦</span>
-            <span>Memory</span>
-            <strong>42%</strong>
-          </div>
-
-          <div class="progress">
-            <span style="width:42%"></span>
-          </div>
-        </div>
-
-
-        <div class="system-stat">
-          <div class="stat-label">
-            <span>▱</span>
-            <span>Storage</span>
-            <strong>65%</strong>
-          </div>
-
-          <div class="progress">
-            <span style="width:65%"></span>
-          </div>
-        </div>
+        <p class="status-description">
+          Your AI assistant is ready to chat, help
+          with tasks, analyze information, and more.
+        </p>
 
       </section>
 
 
-      <!-- TODAY -->
-      <section class="dashboard-card">
+      <!-- =================================================
+           BOTTOM NAVIGATION
+           ================================================= -->
 
-        <div class="section-heading">
-
-          <h2>Today's Overview</h2>
-
-          <button class="see-all">
-            See All ›
-          </button>
-
-        </div>
-
-
-        <div class="overview-grid">
-
-          <article class="overview-card purple">
-            <span>✓</span>
-            <strong>8</strong>
-            <small>Tasks Completed</small>
-            <em>+2 from yesterday</em>
-          </article>
-
-
-          <article class="overview-card blue">
-            <span>◷</span>
-            <strong>2.4h</strong>
-            <small>Time Saved</small>
-            <em>+45m from yesterday</em>
-          </article>
-
-
-          <article class="overview-card orange">
-            <span>•••</span>
-            <strong>15</strong>
-            <small>Questions Answered</small>
-            <em>+3 from yesterday</em>
-          </article>
-
-
-          <article class="overview-card green">
-            <span>▤</span>
-            <strong>6</strong>
-            <small>Documents Analyzed</small>
-            <em>+2 from yesterday</em>
-          </article>
-
-        </div>
-
-      </section>
-
-
-      <!-- RECENT ACTIVITY -->
-      <section class="dashboard-card recent-card">
-
-        <div class="section-heading">
-
-          <h2>Recent Activity</h2>
-
-          <button class="see-all">
-            See All ›
-          </button>
-
-        </div>
-
-
-        <div class="activity-list">
-
-          <div class="activity-item">
-            <span class="activity-icon purple">•••</span>
-            <p>You asked: Explain the theory of relativity in simple terms.</p>
-            <time>10:24 AM</time>
-          </div>
-
-
-          <div class="activity-item">
-            <span class="activity-icon blue">▤</span>
-            <p>Document summarized: <b>Project_Proposal.pdf</b></p>
-            <time>Yesterday</time>
-          </div>
-
-
-          <div class="activity-item">
-            <span class="activity-icon green">&lt;/&gt;</span>
-            <p>Python code generated</p>
-            <time>Yesterday</time>
-          </div>
-
-
-          <div class="activity-item">
-            <span class="activity-icon orange">•••</span>
-            <p>You asked: Best practices for web development?</p>
-            <time>2 days ago</time>
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- BOTTOM NAV -->
       <nav class="bottom-nav">
 
-        <button class="nav-item active">
+        <button
+          class="nav-item active"
+          data-route="home"
+          type="button"
+        >
           <span>⌂</span>
           <small>Home</small>
         </button>
@@ -304,6 +203,7 @@ export async function renderHome(container) {
         <button
           class="nav-item"
           data-route="chat"
+          type="button"
         >
           <span>▢</span>
           <small>Chat</small>
@@ -312,7 +212,9 @@ export async function renderHome(container) {
 
         <button
           class="orb-nav"
-          aria-label="Johnny"
+          data-route="chat"
+          type="button"
+          aria-label="Open Johnny"
         >
           <span>◉</span>
         </button>
@@ -321,6 +223,7 @@ export async function renderHome(container) {
         <button
           class="nav-item"
           data-route="tools"
+          type="button"
         >
           <span>⊞</span>
           <small>Tools</small>
@@ -330,6 +233,7 @@ export async function renderHome(container) {
         <button
           class="nav-item"
           data-route="profile"
+          type="button"
         >
           <span>♙</span>
           <small>Profile</small>
@@ -345,21 +249,36 @@ export async function renderHome(container) {
      NAVIGATION
      ======================================================= */
 
-  container
-    .querySelectorAll("[data-route]")
-    .forEach(button => {
+  const navigationButtons =
+    container.querySelectorAll(
+      "[data-route]"
+    );
+
+
+  navigationButtons.forEach(
+    button => {
 
       button.addEventListener(
         "click",
         () => {
 
+          const route =
+            button.dataset.route;
+
+
+          if (!route) {
+            return;
+          }
+
+
           window.location.hash =
-            `#/${button.dataset.route}`;
+            `#/${route}`;
 
         }
       );
 
-    });
+    }
+  );
 
 
   /* =======================================================
@@ -386,19 +305,16 @@ export async function renderHome(container) {
 
         event.preventDefault();
 
+
         const message =
           input.value.trim();
 
 
         if (!message) {
+          input.focus();
           return;
         }
 
-
-        /*
-         * Chat page will handle the actual
-         * backend conversation.
-         */
 
         sessionStorage.setItem(
           "johnny_tec_os_pending_message",
@@ -416,5 +332,9 @@ export async function renderHome(container) {
 
 }
 
+
+/* =========================================================
+   DEFAULT EXPORT
+   ========================================================= */
 
 export default renderHome;
