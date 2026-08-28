@@ -31,9 +31,14 @@ function renderHome() {
           <div class="top-bar__subtitle">Your AI Assistant</div>
         </div>
       </div>
-      <button class="top-bar__icon-btn" aria-label="Notifications">
-        ${iconBell()}
-      </button>
+      <div class="top-bar__right" style="display:flex; gap:4px;">
+        <button class="top-bar__icon-btn" aria-label="Notifications">
+          ${iconBell()}
+        </button>
+        <button class="top-bar__icon-btn" id="logout-btn" aria-label="Log out">
+          ${iconLogout()}
+        </button>
+      </div>
     </header>
 
     <main class="screen">
@@ -67,7 +72,7 @@ function renderHome() {
 
       <section class="card">
         <div class="section-header"><h2>Recent Activity</h2></div>
-        <div class="empty-state">No activity yet.</div>
+        <div id="recent-activity" class="empty-state">Loading...</div>
       </section>
     </main>
 
@@ -121,6 +126,8 @@ function iconChat() { return svg('<path d="M4 4h16v12H8l-4 4Z"/>'); }
 function iconTools() { return svg('<circle cx="6" cy="6" r="3"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="18" r="3"/>'); }
 function iconProfile() { return svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>'); }
 
+function iconLogout() { return svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>'); }
+
 function svg(inner) {
   return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 }
@@ -139,5 +146,58 @@ async function checkSystemStatus() {
   }
 }
 
+function relativeTime(iso) {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+async function loadRecentActivity() {
+  const el = document.getElementById('recent-activity');
+  if (!el) return;
+
+  try {
+    const data = await apiRequest('/api/chat/conversations', { auth: true });
+    const conversations = data.conversations || [];
+
+    if (conversations.length === 0) {
+      el.innerHTML = `<div class="empty-state">No conversations yet.</div>`;
+      return;
+    }
+
+    el.className = '';
+    el.innerHTML = conversations
+      .slice(0, 5)
+      .map(
+        (c) => `
+        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border-subtle);">
+          <span style="font-size:14px;">${escapeHtml(c.title || 'Untitled chat')}</span>
+          <span style="font-size:12px; color:var(--text-muted); flex-shrink:0; margin-left:8px;">${relativeTime(c.updated_at)}</span>
+        </div>
+      `
+      )
+      .join('');
+  } catch (err) {
+    el.innerHTML = `<div class="empty-state">Couldn't load activity: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function escapeHtml(str) {
+  const d = document.createElement('div');
+  d.textContent = str;
+  return d.innerHTML;
+}
+
 renderHome();
 checkSystemStatus();
+loadRecentActivity();
+
+document.getElementById('logout-btn').addEventListener('click', async () => {
+  await AuthService.logout();
+  window.location.href = 'auth/login/login.html';
+});
