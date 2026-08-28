@@ -3,6 +3,11 @@
 // Once we confirm real endpoints, home stats / activity get their
 // own fetch logic — nothing here is placeholder-dressed-as-real-data.
 
+// Layer 2: require a real session before showing the app.
+if (!AuthService.isAuthenticated()) {
+  window.location.href = 'auth/login/login.html';
+}
+
 function timeGreeting() {
   const h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -12,6 +17,8 @@ function timeGreeting() {
 
 function renderHome() {
   const app = document.getElementById('app');
+  const user = AuthService.getUser();
+  const firstName = (user?.user_metadata?.name || user?.email || '').split(' ')[0].split('@')[0];
 
   app.innerHTML = `
     <header class="top-bar">
@@ -31,7 +38,7 @@ function renderHome() {
 
     <main class="screen">
       <div class="greeting">
-        <h1>${timeGreeting()} 👋</h1>
+        <h1>${timeGreeting()}${firstName ? ', ' + firstName : ''} 👋</h1>
         <p>How can I help you today?</p>
       </div>
 
@@ -50,7 +57,7 @@ function renderHome() {
 
       <section class="card">
         <div class="section-header"><h2>System Status</h2></div>
-        <div class="empty-state">Not connected to backend yet.</div>
+        <div id="system-status" class="empty-state">Checking...</div>
       </section>
 
       <section class="card">
@@ -101,4 +108,19 @@ function svg(inner) {
   return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
 }
 
+async function checkSystemStatus() {
+  const el = document.getElementById('system-status');
+  if (!el) return;
+
+  try {
+    const data = await apiRequest('/api/health');
+    el.textContent = `${data.service || 'Backend'} — ${data.status || 'unknown'}`;
+    el.style.color = 'var(--status-good)';
+  } catch (err) {
+    el.textContent = `Backend unreachable: ${err.message}`;
+    el.style.color = 'var(--status-bad)';
+  }
+}
+
 renderHome();
+checkSystemStatus();
