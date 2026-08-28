@@ -1,26 +1,21 @@
 /* =========================================
-   SalonePadi AI
-   Composer Module
+   JOHNNY TEC OS — COMPOSER MODULE
+   =========================================
 
    RESPONSIBILITY:
-   This file owns the chat composer.
-
-   It handles:
    - Textarea input
    - Enter / Shift+Enter
    - Textarea auto-resize
    - Send button
    - Sending state
    - Sending messages to the backend
-   - Returning the AI response to the controller
+   - Keeping message UI synchronized
 
-   It does NOT:
-   - Render messages
-   - Manage conversations
-   - Render sidebar
-   - Format AI responses
+   This module does NOT:
    - Manage authentication
-   - Manage chat state globally
+   - Manage conversations
+   - Own message HTML
+   - Implement backend chat logic
    ========================================= */
 
 
@@ -60,18 +55,22 @@ export async function initializeComposer(
     actions.addMessage;
 
 
+  const renderMessages =
+    actions.renderMessages;
+
+
   const onConversationChanged =
     actions.onConversationChanged;
 
 
-  /* -----------------------------------------
+  /* =========================================
      REQUIRED ELEMENTS
-     ----------------------------------------- */
+     ========================================= */
 
   if (!input || !form) {
 
     console.warn(
-      "Composer could not initialize: required elements missing."
+      "Johnny Tec OS: Composer could not initialize. Required elements are missing."
     );
 
     return () => {};
@@ -79,25 +78,17 @@ export async function initializeComposer(
   }
 
 
-  /* -----------------------------------------
+  /* =========================================
      API
-     ----------------------------------------- */
-
-  /*
-   * The API can be passed directly from chat.js.
-   *
-   * Keeping it injected makes this module easier
-   * to test and prevents it from importing the
-   * backend implementation unnecessarily.
-   */
+     ========================================= */
 
   const apiClient =
     api;
 
 
-  /* -----------------------------------------
-     RESIZE TEXTAREA
-     ----------------------------------------- */
+  /* =========================================
+     RESIZE INPUT
+     ========================================= */
 
   function resizeInput() {
 
@@ -118,9 +109,37 @@ export async function initializeComposer(
   }
 
 
-  /* -----------------------------------------
+  /* =========================================
+     GET SENDING STATE
+     ========================================= */
+
+  function isSending() {
+
+    if (!state) {
+      return false;
+    }
+
+
+    /*
+     * The official chat-state property is:
+     *
+     *     state.sending
+     *
+     * Keep isSending as a compatibility
+     * fallback for older modules.
+     */
+
+    return Boolean(
+      state.sending ||
+      state.isSending
+    );
+
+  }
+
+
+  /* =========================================
      SET SENDING STATE
-     ----------------------------------------- */
+     ========================================= */
 
   function setSending(
     sending
@@ -131,8 +150,35 @@ export async function initializeComposer(
 
 
     if (state) {
-      state.isSending =
-        value;
+
+      /*
+       * Use the official state method
+       * when available.
+       */
+
+      if (
+        typeof state.setSending ===
+        "function"
+      ) {
+
+        state.setSending(
+          value
+        );
+
+      } else {
+
+        /*
+         * Compatibility fallback.
+         */
+
+        state.sending =
+          value;
+
+        state.isSending =
+          value;
+
+      }
+
     }
 
 
@@ -168,26 +214,72 @@ export async function initializeComposer(
   }
 
 
-  /* -----------------------------------------
+  /* =========================================
+     RENDER STATE MESSAGES
+     ========================================= */
+
+  function syncMessageUI() {
+
+    if (
+      typeof renderMessages !==
+      "function"
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      !state ||
+      !Array.isArray(
+        state.messages
+      )
+    ) {
+
+      return;
+
+    }
+
+
+    /*
+     * Re-render from the shared state.
+     *
+     * This prevents another module from
+     * accidentally leaving the UI empty while
+     * the message still exists in state.
+     */
+
+    renderMessages(
+      state.messages
+    );
+
+  }
+
+
+  /* =========================================
      SEND MESSAGE
-     ----------------------------------------- */
+     ========================================= */
 
   async function sendMessage() {
 
     /*
-     * Do not send while another message is
-     * already being processed.
+     * Never allow two requests at once.
      */
 
     if (
-      state?.isSending
+      isSending()
     ) {
+
       return;
+
     }
 
 
     const message =
-      input.value.trim();
+      String(
+        input.value || ""
+      ).trim();
 
 
     if (!message) {
@@ -195,9 +287,9 @@ export async function initializeComposer(
     }
 
 
-    /*
-     * A conversation is required.
-     */
+    /* =========================================
+       CONVERSATION CHECK
+       ========================================= */
 
     const conversationId =
       state?.conversationId;
@@ -218,12 +310,13 @@ export async function initializeComposer(
       }
 
       return;
+
     }
 
 
-    /*
-     * API is required for backend chat.
-     */
+    /* =========================================
+       API CHECK
+       ========================================= */
 
     if (
       !apiClient ||
@@ -244,12 +337,22 @@ export async function initializeComposer(
       }
 
       return;
+
     }
 
 
+    /* =========================================
+       LOCK COMPOSER
+       ========================================= */
+
+    setSending(
+      true
+    );
+
+
     /*
-     * Clear the composer immediately so the
-     * interface feels responsive.
+     * Clear the input only after validation
+     * and after the request has been locked.
      */
 
     input.value =
@@ -259,30 +362,62 @@ export async function initializeComposer(
       "auto";
 
 
-    /*
-     * Render the user's message immediately.
-     *
-     * The actual rendering remains owned by
-     * messages.js through the injected action.
-     */
+    /* =========================================
+       SHOW USER MESSAGE
+       ========================================= */
 
-    if (
-      typeof addMessage ===
-      "function"
-    ) {
+    let userMessage = null;
 
-      addMessage(
-        "user",
-        message
+
+    try {
+
+      if (
+        typeof addMessage ===
+        "function"
+      ) {
+
+        userMessage =
+          addMessage(
+            "user",
+            message
+          );
+
+      }
+
+
+      /*
+       * Immediately synchronize the UI from
+       * state as an extra safety layer.
+       */
+
+      syncMessageUI();
+
+
+    } catch (error) {
+
+      console.error(
+        "Johnny Tec OS: Failed to render user message:",
+        error
       );
+
+
+      /*
+       * Restore the user's text if the UI
+       * layer failed.
+       */
+
+      input.value =
+        message;
+
+
+      throw error;
 
     }
 
 
-    setSending(
-      true
-    );
-
+    /* =========================================
+       STATUS
+       ========================================= */
 
     if (
       typeof showStatus ===
@@ -290,19 +425,17 @@ export async function initializeComposer(
     ) {
 
       showStatus(
-        "SalonePadi AI is thinking..."
+        "Johnny Tec OS is thinking..."
       );
 
     }
 
 
-    try {
+    /* =========================================
+       BACKEND REQUEST
+       ========================================= */
 
-      /*
-       * Backend contract.
-       *
-       * DO NOT change this endpoint here.
-       */
+    try {
 
       const data =
         await apiClient.post(
@@ -315,25 +448,34 @@ export async function initializeComposer(
         );
 
 
+      /* =====================================
+         EXTRACT AI RESPONSE
+         ===================================== */
+
       const assistantContent =
         data?.message?.content ||
         data?.content ||
+        data?.reply ||
+        data?.response ||
         "";
 
 
-      if (!assistantContent) {
+      if (
+        !String(
+          assistantContent
+        ).trim()
+      ) {
 
         throw new Error(
-          "SalonePadi AI did not return a response."
+          "Johnny Tec OS did not return an AI response."
         );
 
       }
 
 
-      /*
-       * Send the AI response back to the
-       * message layer.
-       */
+      /* =====================================
+         ADD AI RESPONSE
+         ===================================== */
 
       if (
         typeof addMessage ===
@@ -349,12 +491,16 @@ export async function initializeComposer(
 
 
       /*
-       * Notify the controller that a message
-       * has been successfully sent.
-       *
-       * The controller can use this to update
-       * conversation titles and refresh chats.
+       * Synchronize the complete conversation
+       * from shared state.
        */
+
+      syncMessageUI();
+
+
+      /* =====================================
+         CONVERSATION UPDATE
+         ===================================== */
 
       if (
         typeof onConversationChanged ===
@@ -362,31 +508,66 @@ export async function initializeComposer(
       ) {
 
         await onConversationChanged({
-          userMessage: message,
+
+          userMessage:
+            message,
+
           assistantMessage:
             assistantContent,
+
           conversationId
+
         });
 
       }
 
+
+      /* =====================================
+         CLEAR STATUS
+         ===================================== */
+
+      if (
+        typeof showStatus ===
+        "function"
+      ) {
+
+        showStatus(
+          ""
+        );
+
+      }
+
+
       return {
+
         userMessage:
           message,
 
         assistantMessage:
           assistantContent,
 
-        conversationId
+        conversationId,
+
+        userMessageObject:
+          userMessage
+
       };
+
 
     } catch (error) {
 
       console.error(
-        "Send message error:",
+        "Johnny Tec OS: Send message error:",
         error
       );
 
+
+      /*
+       * Keep the already-created user message
+       * in the chat state.
+       *
+       * Do NOT erase it.
+       */
 
       if (
         typeof showStatus ===
@@ -395,32 +576,60 @@ export async function initializeComposer(
 
         showStatus(
           error?.message ||
-          "Unable to generate AI response.",
+          "Unable to generate an AI response.",
           true
         );
 
       }
 
 
+      /*
+       * Re-sync the UI so the user's message
+       * does not disappear after an error.
+       */
+
+      syncMessageUI();
+
+
       throw error;
 
+
     } finally {
+
+      /* =====================================
+         ALWAYS UNLOCK COMPOSER
+         ===================================== */
 
       setSending(
         false
       );
 
 
-      input.focus();
+      /*
+       * Re-sync one final time.
+       */
+
+      syncMessageUI();
+
+
+      /*
+       * Return focus to the input.
+       */
+
+      try {
+
+        input.focus();
+
+      } catch (_) {}
 
     }
 
   }
 
 
-  /* -----------------------------------------
+  /* =========================================
      FORM SUBMIT
-     ----------------------------------------- */
+     ========================================= */
 
   const handleSubmit =
     async event => {
@@ -433,26 +642,28 @@ export async function initializeComposer(
         await sendMessage();
 
       } catch {
+
         /*
-         * sendMessage already reports the
-         * error to the UI.
+         * sendMessage already handles
+         * the visible error.
          */
+
       }
 
     };
 
 
-  /* -----------------------------------------
+  /* =========================================
      KEYBOARD INPUT
-     ----------------------------------------- */
+     ========================================= */
 
   const handleKeyDown =
     event => {
 
       /*
-       * Enter sends.
+       * Enter = send.
        *
-       * Shift + Enter creates a new line.
+       * Shift + Enter = new line.
        */
 
       if (
@@ -462,16 +673,41 @@ export async function initializeComposer(
 
         event.preventDefault();
 
-        form.requestSubmit();
+
+        /*
+         * Avoid requestSubmit() compatibility
+         * problems on older mobile browsers.
+         */
+
+        if (
+          typeof form.requestSubmit ===
+          "function"
+        ) {
+
+          form.requestSubmit();
+
+        } else {
+
+          handleSubmit(
+            new Event(
+              "submit",
+              {
+                bubbles: true,
+                cancelable: true
+              }
+            )
+          );
+
+        }
 
       }
 
     };
 
 
-  /* -----------------------------------------
+  /* =========================================
      INPUT EVENT
-     ----------------------------------------- */
+     ========================================= */
 
   const handleInput =
     () => {
@@ -481,9 +717,9 @@ export async function initializeComposer(
     };
 
 
-  /* -----------------------------------------
+  /* =========================================
      ATTACH EVENTS
-     ----------------------------------------- */
+     ========================================= */
 
   input.addEventListener(
     "input",
@@ -503,16 +739,16 @@ export async function initializeComposer(
   );
 
 
-  /*
-   * Set the correct initial textarea height.
-   */
+  /* =========================================
+     INITIAL STATE
+     ========================================= */
 
   resizeInput();
 
 
-  /* -----------------------------------------
-     RETURN CLEANUP
-     ----------------------------------------- */
+  /* =========================================
+     CLEANUP
+     ========================================= */
 
   return () => {
 
@@ -535,12 +771,30 @@ export async function initializeComposer(
 
 
     /*
-     * Restore the composer to an idle state.
+     * Restore idle state.
      */
 
     if (state) {
-      state.isSending =
-        false;
+
+      if (
+        typeof state.setSending ===
+        "function"
+      ) {
+
+        state.setSending(
+          false
+        );
+
+      } else {
+
+        state.sending =
+          false;
+
+        state.isSending =
+          false;
+
+      }
+
     }
 
 
@@ -564,18 +818,7 @@ export async function initializeComposer(
 
 
 /* =========================================
-   BACKWARD-COMPATIBILITY ALIAS
-   =========================================
-
-   Some older feature-loader code may still call:
-
-       init(context)
-
-   Keep the alias temporarily so the module does
-   not break while we finish separating Chat J's.
-
-   Once feature-loader.js is updated, this can be
-   removed.
+   BACKWARD COMPATIBILITY
    ========================================= */
 
 export async function init(
