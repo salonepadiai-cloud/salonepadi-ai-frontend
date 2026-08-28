@@ -1,45 +1,43 @@
-/* =========================================
-   SalonePadi AI
-   Conversations Module
+/*
+|--------------------------------------------------------------------------
+| JOHNNY TEC OS — CONVERSATIONS MODULE
+|--------------------------------------------------------------------------
+|
+| RESPONSIBILITY:
+| - Load conversations
+| - Create conversations
+| - Load conversation messages
+| - Switch conversations
+| - Delete conversations
+| - Build conversation titles
+| - Cache conversation titles
+|
+| This module does NOT:
+| - Render message HTML
+| - Send AI messages
+| - Manage authentication
+| - Manage composer UI
+|
+|--------------------------------------------------------------------------
+*/
 
-   RESPONSIBILITY:
-   This file owns conversation operations.
-
-   It handles:
-   - Load conversations
-   - Create conversations
-   - Load conversation messages
-   - Switch conversations
-   - Delete conversations
-   - Build display titles
-   - Remember conversation titles
-   - Resolve generic conversation titles
-   - Initialize conversation interactions
-
-   It does NOT:
-   - Render message HTML
-   - Send AI messages
-   - Manage composer/input
-   - Manage sidebar open/close
-   - Manage authentication
-   - Own the AI memory system
-   ========================================= */
+import { api as defaultApi } from "../../api.js";
 
 
 const TITLE_CACHE_PREFIX =
-  "salonepadi_conversation_titles_";
+  "johnny_tec_os_conversation_titles_";
 
 
-/* =========================================
+/* =========================================================================
    INITIALIZE CONVERSATIONS
-   ========================================= */
+   ========================================================================= */
 
 export async function initializeConversations(
   context = {}
 ) {
 
   const {
-    api,
+    api = defaultApi,
     elements = {},
     state,
     user,
@@ -49,14 +47,14 @@ export async function initializeConversations(
 
   if (!api) {
     throw new Error(
-      "Conversation API client is required."
+      "Johnny Tec OS: Conversation API is unavailable."
     );
   }
 
 
   if (!state) {
     throw new Error(
-      "Chat state is required."
+      "Johnny Tec OS: Chat state is required."
     );
   }
 
@@ -65,27 +63,21 @@ export async function initializeConversations(
     elements.conversationList;
 
 
-  /*
-   * Actions supplied by the master controller.
-   *
-   * This keeps this module from owning message
-   * rendering or sidebar rendering.
-   */
-
   const {
     renderConversationList,
     loadMessages,
     startNewChat,
-    showStatus
+    showStatus,
+    closeSidebars
   } = actions;
 
 
   const cleanups = [];
 
 
-  /* =========================================
-     EVENT HELPER
-     ========================================= */
+  /* -----------------------------------------------------------------------
+     EVENT BIND
+     ----------------------------------------------------------------------- */
 
   function bind(
     element,
@@ -95,8 +87,7 @@ export async function initializeConversations(
 
     if (
       !element ||
-      typeof handler !==
-        "function"
+      typeof handler !== "function"
     ) {
       return;
     }
@@ -108,36 +99,29 @@ export async function initializeConversations(
     );
 
 
-    cleanups.push(
-      () => {
+    cleanups.push(() => {
 
-        element.removeEventListener(
-          event,
-          handler
-        );
+      element.removeEventListener(
+        event,
+        handler
+      );
 
-      }
-    );
+    });
 
   }
 
 
-  /* =========================================
-     LOAD INITIAL CONVERSATIONS
-     ========================================= */
+  /* -----------------------------------------------------------------------
+     LOAD CONVERSATIONS
+     ----------------------------------------------------------------------- */
 
   let conversations =
-    await loadConversations(
-      api
-    );
+    await loadConversations(api);
 
 
   /*
-   * If the user has no conversations yet,
-   * create exactly ONE initial conversation.
-   *
-   * This prevents the old problem where every
-   * page render created another "New Chat".
+   * Create the first conversation only when
+   * the account has no conversations.
    */
 
   if (
@@ -158,16 +142,16 @@ export async function initializeConversations(
   }
 
 
-  /* =========================================
+  /* -----------------------------------------------------------------------
      RESOLVE TITLES
-     ========================================= */
+     ----------------------------------------------------------------------- */
 
   const resolvedConversations =
     await Promise.all(
       conversations.map(
         async conversation => {
 
-          const title =
+          const displayTitle =
             await getResolvedConversationTitle(
               api,
               user,
@@ -177,8 +161,7 @@ export async function initializeConversations(
 
           return {
             ...conversation,
-            displayTitle:
-              title
+            displayTitle
           };
 
         }
@@ -186,10 +169,9 @@ export async function initializeConversations(
     );
 
 
-  /*
-   * Display the conversations through the
-   * controller-provided renderer.
-   */
+  /* -----------------------------------------------------------------------
+     RENDER LIST
+     ----------------------------------------------------------------------- */
 
   if (
     typeof renderConversationList ===
@@ -203,9 +185,9 @@ export async function initializeConversations(
   }
 
 
-  /* =========================================
-     SELECT INITIAL CONVERSATION
-     ========================================= */
+  /* -----------------------------------------------------------------------
+     SELECT FIRST CONVERSATION
+     ----------------------------------------------------------------------- */
 
   const first =
     resolvedConversations[0];
@@ -221,11 +203,6 @@ export async function initializeConversations(
     );
 
 
-    /*
-     * Message rendering/loading stays outside
-     * this module.
-     */
-
     if (
       typeof loadMessages ===
       "function"
@@ -240,18 +217,25 @@ export async function initializeConversations(
   }
 
 
-  /* =========================================
-     CONVERSATION LIST EVENTS
-     ========================================= */
+  /* -----------------------------------------------------------------------
+     CONVERSATION CLICK
+     ----------------------------------------------------------------------- */
 
   bind(
     conversationList,
     "click",
     async event => {
 
-      /*
-       * Find the actual conversation item.
-       */
+      const deleteButton =
+        event.target.closest(
+          ".conversation-delete-button"
+        );
+
+
+      if (deleteButton) {
+        return;
+      }
+
 
       const item =
         event.target.closest(
@@ -260,19 +244,6 @@ export async function initializeConversations(
 
 
       if (!item) {
-        return;
-      }
-
-
-      /*
-       * Delete buttons are handled separately.
-       */
-
-      if (
-        event.target.closest(
-          ".conversation-delete-button"
-        )
-      ) {
         return;
       }
 
@@ -286,23 +257,37 @@ export async function initializeConversations(
       }
 
 
-      await switchConversation(
-        api,
-        id,
-        {
-          state,
-          user,
-          actions
-        }
-      );
+      try {
+
+        await switchConversation(
+          api,
+          id,
+          {
+            state,
+            user,
+            actions: {
+              ...actions,
+              closeSidebars
+            }
+          }
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Johnny Tec OS: Conversation switch failed:",
+          error
+        );
+
+      }
 
     }
   );
 
 
-  /* =========================================
-     NEW CHAT BUTTON
-     ========================================= */
+  /* -----------------------------------------------------------------------
+     NEW CHAT
+     ----------------------------------------------------------------------- */
 
   bind(
     elements.newChatButton,
@@ -312,55 +297,27 @@ export async function initializeConversations(
       event.preventDefault();
 
 
-      /*
-       * Prefer the controller-provided
-       * startNewChat function.
-       */
+      try {
 
-      if (
-        typeof startNewChat ===
-        "function"
-      ) {
+        /*
+         * Prefer the controller implementation.
+         */
 
-        try {
+        if (
+          typeof startNewChat ===
+          "function"
+        ) {
 
           await startNewChat();
 
-        } catch (error) {
-
-          console.error(
-            "Start new chat failed:",
-            error
-          );
-
-
-          if (
-            typeof showStatus ===
-            "function"
-          ) {
-
-            showStatus(
-              error.message ||
-              "Unable to start a new chat.",
-              true
-            );
-
-          }
+          return;
 
         }
 
 
-        return;
-
-      }
-
-
-      /*
-       * Fallback if the controller has not
-       * supplied startNewChat yet.
-       */
-
-      try {
+        /*
+         * Fallback implementation.
+         */
 
         const conversation =
           await createConversation(
@@ -376,22 +333,7 @@ export async function initializeConversations(
         );
 
 
-        if (
-          typeof renderConversationList ===
-          "function"
-        ) {
-
-          const fresh =
-            await loadConversations(
-              api
-            );
-
-
-          renderConversationList(
-            fresh
-          );
-
-        }
+        state.clearMessages();
 
 
         if (
@@ -405,10 +347,54 @@ export async function initializeConversations(
 
         }
 
+
+        const fresh =
+          await loadConversations(
+            api
+          );
+
+
+        const resolved =
+          await Promise.all(
+            fresh.map(
+              async item => ({
+                ...item,
+                displayTitle:
+                  await getResolvedConversationTitle(
+                    api,
+                    user,
+                    item
+                  )
+              })
+            )
+          );
+
+
+        if (
+          typeof renderConversationList ===
+          "function"
+        ) {
+
+          renderConversationList(
+            resolved
+          );
+
+        }
+
+
+        if (
+          typeof closeSidebars ===
+          "function"
+        ) {
+
+          closeSidebars();
+
+        }
+
       } catch (error) {
 
         console.error(
-          "Fallback new chat failed:",
+          "Johnny Tec OS: New chat failed:",
           error
         );
 
@@ -419,7 +405,7 @@ export async function initializeConversations(
         ) {
 
           showStatus(
-            error.message ||
+            error?.message ||
             "Unable to create a new chat.",
             true
           );
@@ -432,9 +418,9 @@ export async function initializeConversations(
   );
 
 
-  /* =========================================
-     RETURN CLEANUP
-     ========================================= */
+  /* -----------------------------------------------------------------------
+     CLEANUP
+     ----------------------------------------------------------------------- */
 
   return () => {
 
@@ -449,7 +435,7 @@ export async function initializeConversations(
       } catch (error) {
 
         console.warn(
-          "Conversation event cleanup failed:",
+          "Johnny Tec OS: Conversation cleanup failed:",
           error
         );
 
@@ -462,17 +448,17 @@ export async function initializeConversations(
 }
 
 
-/* =========================================
+/* =========================================================================
    LOAD CONVERSATIONS
-   ========================================= */
+   ========================================================================= */
 
 export async function loadConversations(
-  api
+  api = defaultApi
 ) {
 
   if (!api) {
     throw new Error(
-      "API client is required."
+      "Johnny Tec OS: API client is required."
     );
   }
 
@@ -491,10 +477,6 @@ export async function loadConversations(
       : [];
 
 
-  /*
-   * Always return newest conversations first.
-   */
-
   return conversations
     .slice()
     .sort(
@@ -510,18 +492,18 @@ export async function loadConversations(
 }
 
 
-/* =========================================
+/* =========================================================================
    CREATE CONVERSATION
-   ========================================= */
+   ========================================================================= */
 
 export async function createConversation(
-  api,
+  api = defaultApi,
   title = "New Chat"
 ) {
 
   if (!api) {
     throw new Error(
-      "API client is required."
+      "Johnny Tec OS: API client is required."
     );
   }
 
@@ -540,9 +522,11 @@ export async function createConversation(
 
 
   if (!conversation?.id) {
+
     throw new Error(
-      "The server did not return a conversation."
+      "Johnny Tec OS: Server did not return a conversation."
     );
+
   }
 
 
@@ -551,42 +535,44 @@ export async function createConversation(
 }
 
 
-/* =========================================
+/* =========================================================================
    LOAD CONVERSATION MESSAGES
-   ========================================= */
+   ========================================================================= */
 
 export async function switchConversationData(
-  api,
+  api = defaultApi,
   id
 ) {
 
   if (!api) {
     throw new Error(
-      "API client is required."
+      "Johnny Tec OS: API client is required."
     );
   }
 
 
   if (!id) {
     throw new Error(
-      "Conversation ID is required."
+      "Johnny Tec OS: Conversation ID is required."
     );
   }
 
 
   return api.get(
-    `/api/chat/conversations/${encodeURIComponent(id)}/messages`
+    `/api/chat/conversations/${encodeURIComponent(
+      id
+    )}/messages`
   );
 
 }
 
 
-/* =========================================
+/* =========================================================================
    SWITCH CONVERSATION
-   ========================================= */
+   ========================================================================= */
 
 export async function switchConversation(
-  api,
+  api = defaultApi,
   id,
   context = {}
 ) {
@@ -600,28 +586,27 @@ export async function switchConversation(
 
   if (!api) {
     throw new Error(
-      "API client is required."
-    );
-  }
-
-
-  if (!id) {
-    throw new Error(
-      "Conversation ID is required."
+      "Johnny Tec OS: API client is required."
     );
   }
 
 
   if (!state) {
     throw new Error(
-      "Chat state is required."
+      "Johnny Tec OS: Chat state is required."
+    );
+  }
+
+
+  if (!id) {
+    throw new Error(
+      "Johnny Tec OS: Conversation ID is required."
     );
   }
 
 
   /*
-   * If the user clicked the conversation
-   * already open, there is nothing to load.
+   * Already active.
    */
 
   if (
@@ -655,11 +640,6 @@ export async function switchConversation(
     }
 
 
-    /*
-     * Get the conversation list so we can
-     * resolve the selected conversation title.
-     */
-
     const conversations =
       await loadConversations(
         api
@@ -677,9 +657,7 @@ export async function switchConversation(
       await getResolvedConversationTitle(
         api,
         user,
-        conversation || {
-          id
-        }
+        conversation || { id }
       );
 
 
@@ -689,10 +667,8 @@ export async function switchConversation(
     );
 
 
-    /*
-     * Load messages through the message
-     * module/controller.
-     */
+    state.clearMessages();
+
 
     if (
       typeof loadMessages ===
@@ -712,7 +688,17 @@ export async function switchConversation(
     ) {
 
       renderConversationList(
-        conversations
+        conversations.map(
+          item => ({
+            ...item,
+            displayTitle:
+              item.id === id
+                ? title
+                : item.displayTitle ||
+                  item.title ||
+                  "New Chat"
+          })
+        )
       );
 
     }
@@ -740,7 +726,7 @@ export async function switchConversation(
   } catch (error) {
 
     console.error(
-      "Conversation switch failed:",
+      "Johnny Tec OS: Conversation switch failed:",
       error
     );
 
@@ -751,7 +737,7 @@ export async function switchConversation(
     ) {
 
       showStatus(
-        error.message ||
+        error?.message ||
         "Unable to load conversation.",
         true
       );
@@ -766,43 +752,36 @@ export async function switchConversation(
 }
 
 
-/* =========================================
+/* =========================================================================
    DELETE CONVERSATION
-   ========================================= */
+   ========================================================================= */
 
 export async function deleteConversation(
-  api,
+  api = defaultApi,
   id
 ) {
 
   if (!api) {
     throw new Error(
-      "API client is required."
+      "Johnny Tec OS: API client is required."
     );
   }
 
 
   if (!id) {
     throw new Error(
-      "Conversation ID is required."
+      "Johnny Tec OS: Conversation ID is required."
     );
   }
 
 
-  /*
-   * Backend remains the source of truth.
-   */
-
   const result =
     await api.delete(
-      `/api/chat/conversations/${encodeURIComponent(id)}`
+      `/api/chat/conversations/${encodeURIComponent(
+        id
+      )}`
     );
 
-
-  /*
-   * Only clear local title cache after
-   * backend deletion succeeds.
-   */
 
   clearConversationTitleCache(
     id
@@ -814,9 +793,9 @@ export async function deleteConversation(
 }
 
 
-/* =========================================
+/* =========================================================================
    BUILD DISPLAY TITLE
-   ========================================= */
+   ========================================================================= */
 
 export function buildDisplayTitle(
   message
@@ -838,13 +817,11 @@ export function buildDisplayTitle(
   }
 
 
-  const maxLength =
-    42;
+  const maxLength = 42;
 
 
   if (
-    clean.length <=
-    maxLength
+    clean.length <= maxLength
   ) {
 
     return clean;
@@ -854,10 +831,7 @@ export function buildDisplayTitle(
 
   return (
     clean
-      .slice(
-        0,
-        maxLength
-      )
+      .slice(0, maxLength)
       .trim() +
     "..."
   );
@@ -865,9 +839,9 @@ export function buildDisplayTitle(
 }
 
 
-/* =========================================
+/* =========================================================================
    GENERIC TITLE CHECK
-   ========================================= */
+   ========================================================================= */
 
 export function isGenericConversationTitle(
   title
@@ -890,12 +864,12 @@ export function isGenericConversationTitle(
 }
 
 
-/* =========================================
-   RESOLVE CONVERSATION TITLE
-   ========================================= */
+/* =========================================================================
+   RESOLVE TITLE
+   ========================================================================= */
 
 export async function getResolvedConversationTitle(
-  api,
+  api = defaultApi,
   user,
   conversation
 ) {
@@ -906,7 +880,7 @@ export async function getResolvedConversationTitle(
 
 
   /*
-   * 1. Local cached title.
+   * 1. Cached title.
    */
 
   const cached =
@@ -918,9 +892,7 @@ export async function getResolvedConversationTitle(
 
   if (
     cached &&
-    !isGenericConversationTitle(
-      cached
-    )
+    !isGenericConversationTitle(cached)
   ) {
 
     return cached;
@@ -929,12 +901,11 @@ export async function getResolvedConversationTitle(
 
 
   /*
-   * 2. Backend title.
+   * 2. Server title.
    */
 
   const serverTitle =
-    conversation.title ||
-    "";
+    conversation.title || "";
 
 
   if (
@@ -957,7 +928,7 @@ export async function getResolvedConversationTitle(
 
 
   /*
-   * 3. Look at the first user message.
+   * 3. Derive from first user message.
    */
 
   try {
@@ -980,8 +951,7 @@ export async function getResolvedConversationTitle(
     const firstUserMessage =
       messages.find(
         message =>
-          message?.role ===
-            "user" &&
+          message?.role === "user" &&
           String(
             message?.content || ""
           ).trim()
@@ -990,7 +960,7 @@ export async function getResolvedConversationTitle(
 
     if (firstUserMessage) {
 
-      const derivedTitle =
+      const title =
         buildDisplayTitle(
           firstUserMessage.content
         );
@@ -999,27 +969,23 @@ export async function getResolvedConversationTitle(
       rememberConversationTitle(
         user,
         conversation.id,
-        derivedTitle
+        title
       );
 
 
-      return derivedTitle;
+      return title;
 
     }
 
   } catch (error) {
 
     console.warn(
-      "Unable to derive conversation title:",
+      "Johnny Tec OS: Unable to derive conversation title:",
       error
     );
 
   }
 
-
-  /*
-   * 4. Last-resort title.
-   */
 
   return buildDisplayTitleFromDate(
     conversation.updated_at
@@ -1028,9 +994,9 @@ export async function getResolvedConversationTitle(
 }
 
 
-/* =========================================
-   GET CACHED CONVERSATION TITLE
-   ========================================= */
+/* =========================================================================
+   TITLE CACHE
+   ========================================================================= */
 
 export function getConversationTitle(
   user,
@@ -1054,9 +1020,7 @@ export function getConversationTitle(
 
 
     const raw =
-      localStorage.getItem(
-        key
-      );
+      localStorage.getItem(key);
 
 
     if (!raw) {
@@ -1065,22 +1029,18 @@ export function getConversationTitle(
 
 
     const cache =
-      JSON.parse(
-        raw
-      );
+      JSON.parse(raw);
 
 
-    return (
-      typeof cache?.[id] ===
+    return typeof cache?.[id] ===
       "string"
-        ? cache[id]
-        : null
-    );
+      ? cache[id]
+      : null;
 
   } catch (error) {
 
     console.warn(
-      "Conversation title cache read error:",
+      "Johnny Tec OS: Title cache read failed:",
       error
     );
 
@@ -1091,10 +1051,6 @@ export function getConversationTitle(
 
 }
 
-
-/* =========================================
-   REMEMBER CONVERSATION TITLE
-   ========================================= */
 
 export function rememberConversationTitle(
   user,
@@ -1120,9 +1076,7 @@ export function rememberConversationTitle(
 
 
     const raw =
-      localStorage.getItem(
-        key
-      );
+      localStorage.getItem(key);
 
 
     const cache =
@@ -1134,23 +1088,18 @@ export function rememberConversationTitle(
     cache[id] =
       String(title)
         .trim()
-        .slice(
-          0,
-          100
-        );
+        .slice(0, 100);
 
 
     localStorage.setItem(
       key,
-      JSON.stringify(
-        cache
-      )
+      JSON.stringify(cache)
     );
 
   } catch (error) {
 
     console.warn(
-      "Conversation title cache error:",
+      "Johnny Tec OS: Title cache write failed:",
       error
     );
 
@@ -1159,9 +1108,9 @@ export function rememberConversationTitle(
 }
 
 
-/* =========================================
-   UPDATE TITLE FROM FIRST MESSAGE
-   ========================================= */
+/* =========================================================================
+   REMEMBER FIRST MESSAGE AS TITLE
+   ========================================================================= */
 
 export function rememberMessageAsTitle(
   user,
@@ -1180,9 +1129,7 @@ export function rememberMessageAsTitle(
 
 
   const title =
-    buildDisplayTitle(
-      message
-    );
+    buildDisplayTitle(message);
 
 
   rememberConversationTitle(
@@ -1197,9 +1144,9 @@ export function rememberMessageAsTitle(
 }
 
 
-/* =========================================
-   BUILD DATE TITLE
-   ========================================= */
+/* =========================================================================
+   DATE TITLE
+   ========================================================================= */
 
 export function buildDisplayTitleFromDate(
   value
@@ -1211,9 +1158,7 @@ export function buildDisplayTitleFromDate(
 
 
   const date =
-    new Date(
-      value
-    );
+    new Date(value);
 
 
   if (
@@ -1246,9 +1191,9 @@ export function buildDisplayTitleFromDate(
 }
 
 
-/* =========================================
-   CLEAR CONVERSATION TITLE CACHE
-   ========================================= */
+/* =========================================================================
+   CLEAR TITLE CACHE
+   ========================================================================= */
 
 export function clearConversationTitleCache(
   id
@@ -1261,14 +1206,6 @@ export function clearConversationTitleCache(
 
   try {
 
-    const prefix =
-      TITLE_CACHE_PREFIX;
-
-
-    /*
-     * Search all SalonePadi title caches.
-     */
-
     for (
       let index = 0;
       index < localStorage.length;
@@ -1276,27 +1213,22 @@ export function clearConversationTitleCache(
     ) {
 
       const key =
-        localStorage.key(
-          index
-        );
+        localStorage.key(index);
 
 
       if (
         !key ||
         !key.startsWith(
-          prefix
+          TITLE_CACHE_PREFIX
         )
       ) {
 
         continue;
-
       }
 
 
       const raw =
-        localStorage.getItem(
-          key
-        );
+        localStorage.getItem(key);
 
 
       if (!raw) {
@@ -1307,9 +1239,7 @@ export function clearConversationTitleCache(
       try {
 
         const cache =
-          JSON.parse(
-            raw
-          );
+          JSON.parse(raw);
 
 
         if (
@@ -1324,19 +1254,13 @@ export function clearConversationTitleCache(
 
           localStorage.setItem(
             key,
-            JSON.stringify(
-              cache
-            )
+            JSON.stringify(cache)
           );
 
         }
 
       } catch {
-
-        /*
-         * Ignore damaged individual cache.
-         */
-
+        /* Ignore damaged cache. */
       }
 
     }
@@ -1344,9 +1268,17 @@ export function clearConversationTitleCache(
   } catch (error) {
 
     console.warn(
-      "Conversation title cache cleanup error:",
+      "Johnny Tec OS: Title cache cleanup failed:",
       error
     );
 
   }
+
 }
+
+
+/* =========================================================================
+   DEFAULT EXPORT
+   ========================================================================= */
+
+export default initializeConversations;
