@@ -3,26 +3,93 @@
    RESPONSIVE FOUNDATION
    ========================================================= */
 
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
 @media (max-width: 768px) {
 
+  html,
   body {
+    width: 100%;
+    min-width: 0;
     overflow-x: hidden;
   }
 
 
-  #app {
+  body {
+    min-height: 100vh;
+  }
+
+
+  #app,
+  .app {
     width: 100%;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+
+  button,
+  input,
+  textarea,
+  select {
+    max-width: 100%;
   }
 
 }
 
 
-@media (min-width: 769px) {
+/* =========================================================
+   TABLET
+   ========================================================= */
 
-  #app {
+@media (min-width: 769px) and (max-width: 1024px) {
+
+  #app,
+  .app {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+}
+
+
+/* =========================================================
+   DESKTOP
+   ========================================================= */
+
+@media (min-width: 1025px) {
+
+  #app,
+  .app {
     width: 100%;
     max-width: var(--max-width);
     margin: 0 auto;
+  }
+
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 
 }
