@@ -1,9 +1,21 @@
 /* =========================================
-   SalonePadi AI
-   Chat Master Controller
+   JOHNNY TEC OS
+   CHAT MASTER CONTROLLER
 
    RESPONSIBILITY:
-   This file ONLY coordinates the Chat page.
+   This file coordinates the Chat page.
+
+   It connects:
+   - Chat state
+   - Chat shell
+   - Sidebar
+   - Conversations
+   - Messages
+   - Composer
+   - Optional features
+
+   Backend requests remain inside api.js
+   and the individual modules.
    ========================================= */
 
 import {
@@ -28,11 +40,17 @@ import {
 } from "./chat/sidebar.js";
 
 import {
-  initializeConversations
+  initializeConversations,
+  switchConversationData,
+  loadConversations,
+  createConversation
 } from "./chat/conversations.js";
 
 import {
-  initializeMessages
+  initializeMessages,
+  appendMessage,
+  renderMessages,
+  clearMessages
 } from "./chat/messages.js";
 
 import {
@@ -54,31 +72,38 @@ let activeCleanup = null;
 export async function renderChat(container) {
 
   if (!container) {
+
     console.error(
-      "SalonePadi AI: Chat container was not found."
+      "Johnny Tec OS: Chat container was not found."
     );
 
     return;
+
   }
 
 
   /* =========================================
-     1. AUTHENTICATION
+     AUTHENTICATION
      ========================================= */
 
   if (!authenticated()) {
 
-    window.location.hash = "#/login";
+    window.location.hash =
+      "#/login";
 
     return;
+
   }
 
 
   /* =========================================
-     2. CLEAN PREVIOUS CHAT
+     CLEAN PREVIOUS INSTANCE
      ========================================= */
 
-  if (typeof activeCleanup === "function") {
+  if (
+    typeof activeCleanup ===
+    "function"
+  ) {
 
     try {
 
@@ -94,14 +119,16 @@ export async function renderChat(container) {
     }
 
     activeCleanup = null;
+
   }
 
 
   /* =========================================
-     3. CURRENT USER
+     CURRENT USER
      ========================================= */
 
-  const user = currentUser();
+  const user =
+    currentUser();
 
   const displayName =
     user?.user_metadata?.name ||
@@ -111,14 +138,15 @@ export async function renderChat(container) {
 
 
   /* =========================================
-     4. CREATE CHAT STATE
+     CREATE STATE
      ========================================= */
 
   let state;
 
   try {
 
-    state = createChatState();
+    state =
+      createChatState();
 
   } catch (error) {
 
@@ -128,21 +156,23 @@ export async function renderChat(container) {
     );
 
     return;
+
   }
 
 
   if (!state) {
 
     console.error(
-      "SalonePadi AI: createChatState() returned nothing."
+      "Johnny Tec OS: Chat state was not created."
     );
 
     return;
+
   }
 
 
   /* =========================================
-     5. CREATE CHAT SHELL
+     CREATE CHAT SHELL
      ========================================= */
 
   let elements;
@@ -165,25 +195,19 @@ export async function renderChat(container) {
       error
     );
 
-    try {
-      state.destroy();
-    } catch (_) {}
-
     return;
+
   }
 
 
   if (!elements) {
 
     console.error(
-      "SalonePadi AI: Chat shell could not be created."
+      "Johnny Tec OS: Chat shell could not be created."
     );
 
-    try {
-      state.destroy();
-    } catch (_) {}
-
     return;
+
   }
 
 
@@ -192,34 +216,429 @@ export async function renderChat(container) {
      ========================================= */
 
   let sidebarCleanup = null;
+
   let conversationsCleanup = null;
+
   let messagesCleanup = null;
+
   let composerCleanup = null;
+
   let featuresCleanup = null;
 
 
-  /*
-   * Message actions supplied by messages.js.
-   *
-   * We keep these outside the initializer so
-   * the Composer can use the same message layer.
-   */
+  /* =========================================
+     MESSAGE HELPERS
+     =========================================
 
-  let messageActions = {};
+     These wrappers connect the composer
+     directly to the message module.
+     ========================================= */
+
+  const messagesContainer =
+    elements.messagesContainer;
+
+
+  function addChatMessage(
+    role,
+    content,
+    id = null
+  ) {
+
+    if (!messagesContainer) {
+
+      console.warn(
+        "Johnny Tec OS: Messages container missing."
+      );
+
+      return null;
+
+    }
+
+
+    const message =
+      state.addMessage(
+        role,
+        content,
+        id
+      );
+
+
+    appendMessage(
+      messagesContainer,
+      message
+    );
+
+
+    return message;
+
+  }
+
+
+  function clearChatMessages() {
+
+    state.clearMessages();
+
+    clearMessages(
+      messagesContainer
+    );
+
+  }
+
+
+  function showStatus(
+    message = "",
+    isError = false
+  ) {
+
+    const status =
+      elements.chatStatus ||
+      elements.status;
+
+
+    if (!status) {
+
+      return;
+
+    }
+
+
+    status.textContent =
+      message || "";
+
+
+    status.classList.toggle(
+      "error",
+      Boolean(isError)
+    );
+
+  }
 
 
   /* =========================================
-     6. SIDEBAR
+     LOAD MESSAGES
+     ========================================= */
+
+  async function loadMessages(
+    conversationId
+  ) {
+
+    if (!conversationId) {
+
+      clearChatMessages();
+
+      return;
+
+    }
+
+
+    try {
+
+      state.setLoading(
+        true
+      );
+
+      state.setError(
+        null
+      );
+
+
+      const data =
+        await switchConversationData(
+          api,
+          conversationId
+        );
+
+
+      const serverMessages =
+        Array.isArray(
+          data?.messages
+        )
+          ? data.messages
+          : [];
+
+
+      state.clearMessages();
+
+
+      const normalizedMessages =
+        serverMessages.map(
+          message => ({
+
+            id:
+              message?.id ||
+              null,
+
+            role:
+              message?.role ===
+              "user"
+                ? "user"
+                : "assistant",
+
+            content:
+              String(
+                message?.content ??
+                message?.text ??
+                ""
+              ),
+
+            createdAt:
+              message?.created_at ||
+              message?.createdAt ||
+              new Date().toISOString()
+
+          })
+        );
+
+
+      state.messages =
+        normalizedMessages;
+
+
+      renderMessages(
+        messagesContainer,
+        state.messages
+      );
+
+
+      showStatus(
+        ""
+      );
+
+
+      return state.messages;
+
+    } catch (error) {
+
+      console.error(
+        "Johnny Tec OS: Unable to load messages:",
+        error
+      );
+
+
+      state.setError(
+        error
+      );
+
+
+      showStatus(
+        error?.message ||
+        "Unable to load conversation messages.",
+        true
+      );
+
+
+      throw error;
+
+    } finally {
+
+      state.setLoading(
+        false
+      );
+
+    }
+
+  }
+
+
+  /* =========================================
+     START NEW CHAT
+     ========================================= */
+
+  async function startNewChat() {
+
+    const conversation =
+      await createConversation(
+        api,
+        "New Chat"
+      );
+
+
+    state.setConversation(
+      conversation.id,
+      conversation.title ||
+      "New Chat"
+    );
+
+
+    clearChatMessages();
+
+
+    /*
+     * Refresh conversation list.
+     */
+
+    if (
+      typeof renderConversationList ===
+      "function"
+    ) {
+
+      const conversations =
+        await loadConversations(
+          api
+        );
+
+      renderConversationList(
+        conversations
+      );
+
+    }
+
+
+    return conversation;
+
+  }
+
+
+  /* =========================================
+     RENDER CONVERSATION LIST
+     ========================================= */
+
+  function renderConversationList(
+    conversations = []
+  ) {
+
+    const list =
+      elements.conversationList;
+
+
+    if (!list) {
+
+      return;
+
+    }
+
+
+    list.innerHTML = "";
+
+
+    conversations.forEach(
+      conversation => {
+
+        if (!conversation?.id) {
+
+          return;
+
+        }
+
+
+        const item =
+          document.createElement(
+            "button"
+          );
+
+
+        item.type =
+          "button";
+
+
+        item.className =
+          "conversation-item";
+
+
+        item.dataset.conversationId =
+          conversation.id;
+
+
+        item.textContent =
+          conversation.displayTitle ||
+          conversation.title ||
+          "New Chat";
+
+
+        list.appendChild(
+          item
+        );
+
+      }
+    );
+
+  }
+
+
+  /* =========================================
+     CONVERSATION CHANGE
+     ========================================= */
+
+  async function onConversationChanged(
+    change = {}
+  ) {
+
+    const {
+      conversationId,
+      userMessage
+    } = change;
+
+
+    if (!conversationId) {
+
+      return;
+
+    }
+
+
+    /*
+     * Keep the local state synchronized.
+     */
+
+    if (
+      userMessage &&
+      state.messages.length === 0
+    ) {
+
+      state.addMessage(
+        "user",
+        userMessage
+      );
+
+    }
+
+
+    /*
+     * Refresh the conversation list
+     * after a successful message.
+     */
+
+    try {
+
+      const conversations =
+        await loadConversations(
+          api
+        );
+
+
+      renderConversationList(
+        conversations
+      );
+
+    } catch (error) {
+
+      console.warn(
+        "Johnny Tec OS: Conversation refresh failed:",
+        error
+      );
+
+    }
+
+  }
+
+
+  /* =========================================
+     SIDEBAR
      ========================================= */
 
   try {
 
     sidebarCleanup =
       await initializeSidebar({
+
         elements,
+
         state,
+
         user,
+
         displayName
+
       });
 
   } catch (error) {
@@ -233,18 +652,49 @@ export async function renderChat(container) {
 
 
   /* =========================================
-     7. CONVERSATIONS
+     CONVERSATIONS
      ========================================= */
 
   try {
 
     conversationsCleanup =
       await initializeConversations({
+
         elements,
+
         state,
+
         user,
+
         displayName,
-        api
+
+        api,
+
+        actions: {
+
+          renderConversationList,
+
+          loadMessages,
+
+          startNewChat,
+
+          showStatus,
+
+          closeSidebars() {
+
+            if (
+              typeof elements.closeSidebars ===
+              "function"
+            ) {
+
+              elements.closeSidebars();
+
+            }
+
+          }
+
+        }
+
       });
 
   } catch (error) {
@@ -254,51 +704,59 @@ export async function renderChat(container) {
       error
     );
 
+    showStatus(
+      error?.message ||
+      "Unable to load conversations.",
+      true
+    );
+
   }
 
 
   /* =========================================
-     8. MESSAGES
+     MESSAGES
      ========================================= */
 
   try {
 
     const result =
       await initializeMessages({
+
         elements,
+
         state,
+
         user,
-        displayName
+
+        displayName,
+
+        messagesContainer,
+
+        getMessages() {
+
+          return state.messages;
+
+        }
+
       });
 
 
-    /*
-     * messages.js may return its public
-     * actions/cleanup object.
-     */
-
     if (
-      result &&
-      typeof result === "object"
-    ) {
-
-      messageActions = result;
-
-      if (
-        typeof result.cleanup === "function"
-      ) {
-
-        messagesCleanup =
-          result.cleanup;
-
-      }
-
-    } else if (
-      typeof result === "function"
+      typeof result ===
+      "function"
     ) {
 
       messagesCleanup =
         result;
+
+    } else if (
+      result &&
+      typeof result.cleanup ===
+      "function"
+    ) {
+
+      messagesCleanup =
+        result.cleanup;
 
     }
 
@@ -313,7 +771,7 @@ export async function renderChat(container) {
 
 
   /* =========================================
-     9. COMPOSER
+     COMPOSER
      ========================================= */
 
   try {
@@ -329,89 +787,16 @@ export async function renderChat(container) {
 
         displayName,
 
-        /*
-         * THIS WAS MISSING.
-         *
-         * Composer now receives the real
-         * backend API client.
-         */
-
         api,
-
-        /*
-         * Connect Composer to Messages.
-         */
 
         actions: {
 
           addMessage:
-            typeof messageActions.addMessage ===
-            "function"
+            addChatMessage,
 
-              ? messageActions.addMessage
+          showStatus,
 
-              : (
-                  role,
-                  content
-                ) => {
-
-                  console.warn(
-                    "Messages module has no addMessage() action."
-                  );
-
-                },
-
-
-          showStatus:
-            typeof messageActions.showStatus ===
-            "function"
-
-              ? messageActions.showStatus
-
-              : (
-                  message,
-                  error = false
-                ) => {
-
-                  if (
-                    elements.chatStatus
-                  ) {
-
-                    elements.chatStatus.textContent =
-                      message || "";
-
-                    elements.chatStatus.classList.toggle(
-                      "error",
-                      Boolean(error)
-                    );
-
-                  }
-
-                },
-
-
-          onConversationChanged:
-            async (
-              change = {}
-            ) => {
-
-              /*
-               * Notify conversation module
-               * if it exposes the action.
-               */
-
-              if (
-                typeof messageActions.onConversationChanged ===
-                "function"
-              ) {
-
-                return messageActions.onConversationChanged(
-                  change
-                );
-
-              }
-
-            }
+          onConversationChanged
 
         }
 
@@ -424,11 +809,17 @@ export async function renderChat(container) {
       error
     );
 
+    showStatus(
+      error?.message ||
+      "Composer could not initialize.",
+      true
+    );
+
   }
 
 
   /* =========================================
-     10. OPTIONAL FEATURES
+     OPTIONAL FEATURES
      ========================================= */
 
   try {
@@ -459,17 +850,23 @@ export async function renderChat(container) {
 
 
   /* =========================================
-     11. CLEANUP
+     CLEANUP
      ========================================= */
 
   const cleanup = () => {
 
     const cleanups = [
+
       featuresCleanup,
+
       composerCleanup,
+
       messagesCleanup,
+
       conversationsCleanup,
+
       sidebarCleanup
+
     ];
 
 
@@ -519,10 +916,12 @@ export async function renderChat(container) {
 
 
     if (
-      activeCleanup === cleanup
+      activeCleanup ===
+      cleanup
     ) {
 
-      activeCleanup = null;
+      activeCleanup =
+        null;
 
     }
 
@@ -546,4 +945,5 @@ export async function renderChat(container) {
     cleanup
 
   };
+   
 }
