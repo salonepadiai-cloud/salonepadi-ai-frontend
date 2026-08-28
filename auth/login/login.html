@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Log in — JOHNNY TEC OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../styles/variables.css" />
+<link rel="stylesheet" href="../../styles/global.css" />
+<link rel="stylesheet" href="../auth.css" />
+</head>
+<body>
+<div class="auth-screen">
+  <div class="auth-brand">
+    <div class="orb" style="width:56px;height:56px;">
+      <span class="eye"></span><span class="eye"></span>
+    </div>
+    <h1>JOHNNY TEC OS</h1>
+    <p>Log in to continue</p>
+  </div>
+
+  <div id="form-error" class="form-error"></div>
+
+  <form id="login-form" class="auth-form">
+    <div class="form-field">
+      <label for="email">Email</label>
+      <input type="email" id="email" required autocomplete="email" />
+    </div>
+    <div class="form-field">
+      <label for="password">Password</label>
+      <input type="password" id="password" required autocomplete="current-password" />
+    </div>
+    <button type="submit" id="submit-btn" class="btn-primary">Log in</button>
+  </form>
+
+  <div class="auth-switch">
+    Don't have an account? <a href="../signup/signup.html">Sign up</a>
+  </div>
+</div>
+
+<script src="../../config/config.js"></script>
+<script src="../../services/api.js"></script>
+<script src="../../services/auth-service.js"></script>
+<script src="login.js"></script>
+</body>
+</html>
