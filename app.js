@@ -6,16 +6,20 @@
    RESPONSIBILITY:
    - Start the frontend application
    - Find the application root
-   - Load the initial page
-   - Control basic page navigation
+   - Control basic hash navigation
+   - Render the requested page
 
    This file does NOT:
    - Call the AI backend directly
-   - Manage authentication logic
+   - Manage authentication
    - Contain page UI
    - Contain component UI
    ========================================================= */
 
+
+/* =========================================================
+   PAGE IMPORTS
+   ========================================================= */
 
 import {
   renderHome
@@ -44,19 +48,21 @@ if (!app) {
 
 
 /* =========================================================
-   ROUTER
+   ROUTE
    ========================================================= */
 
 function getRoute() {
 
   const hash =
     window.location.hash
-      .replace("#", "")
+      .replace(/^#/, "")
       .trim();
 
 
   if (!hash) {
+
     return "home";
+
   }
 
 
@@ -78,23 +84,94 @@ async function renderRoute() {
     getRoute();
 
 
+  /*
+   * Clear the previous page.
+   */
+
   app.innerHTML = "";
 
 
-  switch (route) {
+  try {
 
-    case "home":
+    switch (route) {
 
-      await renderHome(app);
+      case "home":
 
-      break;
+        await renderHome(app);
+
+        break;
 
 
-    default:
+      /*
+       * Pages will be added here one
+       * at a time as we build JOHNNY TEC OS.
+       */
 
-      await renderHome(app);
+      default:
 
-      break;
+        await renderHome(app);
+
+        break;
+
+    }
+
+  } catch (error) {
+
+    console.error(
+      "JOHNNY TEC OS: Page rendering failed:",
+      error
+    );
+
+
+    app.innerHTML = `
+      <main
+        style="
+          min-height:100vh;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          padding:24px;
+          text-align:center;
+        "
+      >
+        <section>
+          <h1>JOHNNY TEC OS</h1>
+
+          <p>
+            Something went wrong while loading this page.
+          </p>
+
+          <button
+            type="button"
+            id="retry-app"
+            style="
+              margin-top:16px;
+              padding:12px 20px;
+              border-radius:12px;
+              cursor:pointer;
+            "
+          >
+            Try Again
+          </button>
+        </section>
+      </main>
+    `;
+
+
+    const retryButton =
+      document.getElementById(
+        "retry-app"
+      );
+
+
+    if (retryButton) {
+
+      retryButton.addEventListener(
+        "click",
+        renderRoute
+      );
+
+    }
 
   }
 
@@ -102,7 +179,7 @@ async function renderRoute() {
 
 
 /* =========================================================
-   NAVIGATION LISTENER
+   NAVIGATION
    ========================================================= */
 
 window.addEventListener(
