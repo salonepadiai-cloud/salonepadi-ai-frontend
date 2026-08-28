@@ -9,13 +9,12 @@
    - Clear messages
    - Show chat status
    - Scroll chat to bottom
-   - Expose message actions to Chat Controller
 
    This module does NOT:
    - Call the backend
    - Manage authentication
    - Manage conversations
-   - Send messages
+   - Manage composer/input
    ========================================= */
 
 
@@ -23,107 +22,65 @@
    INITIALIZE MESSAGES
    ========================================= */
 
-export function initializeMessages(
-  context = {}
-) {
+export function initializeMessages(context = {}) {
 
   const {
     elements = {},
     state = null,
-    messagesContainer,
-    getMessages
+    user = null,
+    displayName = "User"
   } = context;
 
 
   /*
-   * Support the new Chat Shell interface.
+   * Find the messages container.
    *
-   * Also keep compatibility with the older
-   * direct messagesContainer interface.
+   * Different versions of chat-shell may expose
+   * the container under different names.
    */
 
-  const container =
-    elements.messages ||
-    elements.chatMessages ||
+  const messagesContainer =
     elements.messagesContainer ||
-    messagesContainer;
+    elements.messageList ||
+    elements.messages ||
+    null;
 
 
-  if (!container) {
+  if (!messagesContainer) {
 
-    console.warn(
-      "Johnny Tec OS: messages container not found."
+    console.error(
+      "Johnny Tec OS: Messages container was not found."
     );
 
     return {
-      cleanup() {},
-      addMessage() {},
-      showStatus() {}
+      cleanup: () => {},
+      addMessage: () => {},
+      showStatus: () => {},
+      clearMessages: () => {},
+      renderMessages: () => {}
     };
 
   }
 
 
   /* =========================================
-     GET CURRENT MESSAGES
+     GET CURRENT STATE MESSAGES
      ========================================= */
 
-  function readMessages() {
-
-    /*
-     * Prefer supplied getter.
-     */
+  function getStateMessages() {
 
     if (
-      typeof getMessages === "function"
+      !state ||
+      !Array.isArray(state.messages)
     ) {
 
-      return getMessages() || [];
+      return [];
 
     }
 
-
-    /*
-     * Try Chat State.
-     */
-
-    if (
-      state &&
-      typeof state.getMessages === "function"
-    ) {
-
-      return state.getMessages() || [];
-
-    }
-
-
-    /*
-     * Try state.messages.
-     */
-
-    if (
-      state &&
-      Array.isArray(state.messages)
-    ) {
-
-      return state.messages;
-
-    }
-
-
-    return [];
+    return state.messages;
 
   }
-
-
-  /* =========================================
-     RENDER EXISTING MESSAGES
-     ========================================= */
-
-  renderMessages(
-    container,
-    readMessages()
-  );
 
 
   /* =========================================
@@ -132,62 +89,93 @@ export function initializeMessages(
 
   function addMessage(
     role,
-    content
+    content,
+    id = null
   ) {
 
-    if (!content) {
-      return null;
-    }
-
-
-    const message = {
-
-      role:
-        role === "user"
-          ? "user"
-          : "assistant",
-
-      content:
-        String(content)
-
-    };
-
-
     /*
-     * Keep state synchronized when the
-     * state module exposes addMessage().
+     * Ignore empty messages.
      */
 
     if (
-      state &&
-      typeof state.addMessage ===
-      "function"
+      content === null ||
+      content === undefined ||
+      String(content).trim() === ""
     ) {
 
-      try {
-
-        state.addMessage(
-          message
-        );
-
-      } catch (error) {
-
-        console.warn(
-          "Johnny Tec OS: state.addMessage() failed:",
-          error
-        );
-
-      }
+      return null;
 
     }
 
 
-    return appendMessage(
-      container,
+    /*
+     * Add the message to chat state.
+     *
+     * This is important because the Composer
+     * and the UI must share the same message state.
+     */
+
+    let message;
+
+
+    if (
+      state &&
+      typeof state.addMessage === "function"
+    ) {
+
+      message =
+        state.addMessage(
+          role,
+          content,
+          id
+        );
+
+    } else {
+
+      message = {
+
+        id:
+          id ||
+          `${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2)}`,
+
+        role,
+
+        content:
+          String(content),
+
+        createdAt:
+          new Date().toISOString()
+
+      };
+
+    }
+
+
+    /*
+     * Render immediately.
+     */
+
+    appendMessage(
+      messagesContainer,
       message
     );
 
+
+    return message;
+
   }
+
+
+  /* =========================================
+     RENDER EXISTING STATE
+     ========================================= */
+
+  renderMessages(
+    messagesContainer,
+    getStateMessages()
+  );
 
 
   /* =========================================
@@ -196,15 +184,17 @@ export function initializeMessages(
 
   function showStatus(
     message = "",
-    isError = false
+    error = false
   ) {
+
+    /*
+     * Try the shell's status element first.
+     */
 
     const status =
       elements.chatStatus ||
       elements.status ||
-      document.getElementById(
-        "chatStatus"
-      );
+      null;
 
 
     if (!status) {
@@ -217,23 +207,46 @@ export function initializeMessages(
 
 
     status.classList.toggle(
-      "chat-error",
-      Boolean(isError)
+      "error",
+      Boolean(error)
     );
 
 
+    status.classList.toggle(
+      "visible",
+      Boolean(message)
+    );
+
+  }
+
+
+  /* =========================================
+     CLEAR MESSAGES
+     ========================================= */
+
+  function clearMessages() {
+
     /*
-     * Empty status after successful
-     * operations.
+     * Clear state first.
      */
 
-    if (!message) {
+    if (
+      state &&
+      typeof state.clearMessages ===
+        "function"
+    ) {
 
-      status.classList.remove(
-        "chat-error"
-      );
+      state.clearMessages();
 
     }
+
+
+    /*
+     * Then clear UI.
+     */
+
+    messagesContainer.innerHTML =
+      "";
 
   }
 
@@ -245,16 +258,17 @@ export function initializeMessages(
   function cleanup() {
 
     /*
-     * Do not destroy the container here.
-     *
-     * The Chat Controller owns the shell.
+     * Nothing persistent is attached here
+     * currently, but keeping cleanup makes
+     * the module compatible with the master
+     * controller.
      */
 
   }
 
 
   /* =========================================
-     PUBLIC MODULE API
+     PUBLIC MESSAGE API
      ========================================= */
 
   return {
@@ -265,33 +279,29 @@ export function initializeMessages(
 
     showStatus,
 
-    renderMessages:
-      () => {
+    clearMessages,
 
-        renderMessages(
-          container,
-          readMessages()
-        );
+    renderMessages: (
+      messages = []
+    ) => {
 
-      },
+      renderMessages(
+        messagesContainer,
+        messages
+      );
 
-    clearMessages:
-      () => {
+    },
 
-        clearMessages(
-          container
-        );
+    appendMessage: (
+      message
+    ) => {
 
-      },
+      return appendMessage(
+        messagesContainer,
+        message
+      );
 
-    scrollToBottom:
-      () => {
-
-        scrollToBottom(
-          container
-        );
-
-      }
+    }
 
   };
 
@@ -317,9 +327,7 @@ export function renderMessages(
 
 
   if (!Array.isArray(messages)) {
-
-    messages = [];
-
+    return;
   }
 
 
@@ -362,9 +370,18 @@ export function appendMessage(
 
 
   const content =
-    message.content ??
-    message.text ??
+    message.content ||
+    message.text ||
     "";
+
+
+  if (
+    String(content).trim() === ""
+  ) {
+
+    return null;
+
+  }
 
 
   const row =
@@ -381,9 +398,9 @@ export function appendMessage(
     }`;
 
 
-  /* =========================================
-     AVATAR
-     ========================================= */
+  /*
+   * Avatar
+   */
 
   const avatar =
     document.createElement(
@@ -401,9 +418,9 @@ export function appendMessage(
       : "🦁";
 
 
-  /* =========================================
-     BUBBLE
-     ========================================= */
+  /*
+   * Bubble
+   */
 
   const bubble =
     document.createElement(
@@ -419,9 +436,9 @@ export function appendMessage(
     }`;
 
 
-  /* =========================================
-     MESSAGE TEXT
-     ========================================= */
+  /*
+   * Message text
+   */
 
   const text =
     document.createElement(
@@ -437,9 +454,9 @@ export function appendMessage(
     String(content);
 
 
-  /* =========================================
-     BUILD
-     ========================================= */
+  /*
+   * Build message
+   */
 
   bubble.appendChild(
     text
@@ -461,31 +478,16 @@ export function appendMessage(
   );
 
 
+  /*
+   * Always keep latest message visible.
+   */
+
   scrollToBottom(
     container
   );
 
 
   return row;
-
-}
-
-
-/* =========================================
-   CLEAR MESSAGES
-   ========================================= */
-
-export function clearMessages(
-  container
-) {
-
-  if (!container) {
-    return;
-  }
-
-
-  container.innerHTML =
-    "";
 
 }
 
@@ -511,4 +513,17 @@ export function scrollToBottom(
 
     }
   );
+
 }
+
+
+/* =========================================
+   DEFAULT EXPORT
+   ========================================= */
+
+export default {
+  initializeMessages,
+  renderMessages,
+  appendMessage,
+  scrollToBottom
+};
