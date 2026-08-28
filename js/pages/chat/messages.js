@@ -33,10 +33,8 @@ export function initializeMessages(context = {}) {
 
 
   /*
-   * Find the messages container.
-   *
-   * Different versions of chat-shell may expose
-   * the container under different names.
+   * Keep these available for compatibility
+   * with different chat-shell versions.
    */
 
   const messagesContainer =
@@ -53,18 +51,26 @@ export function initializeMessages(context = {}) {
     );
 
     return {
+
       cleanup: () => {},
-      addMessage: () => {},
+
+      addMessage: () => null,
+
       showStatus: () => {},
+
       clearMessages: () => {},
-      renderMessages: () => {}
+
+      renderMessages: () => {},
+
+      appendMessage: () => null
+
     };
 
   }
 
 
   /* =========================================
-     GET CURRENT STATE MESSAGES
+     GET STATE MESSAGES
      ========================================= */
 
   function getStateMessages() {
@@ -93,10 +99,6 @@ export function initializeMessages(context = {}) {
     id = null
   ) {
 
-    /*
-     * Ignore empty messages.
-     */
-
     if (
       content === null ||
       content === undefined ||
@@ -108,19 +110,17 @@ export function initializeMessages(context = {}) {
     }
 
 
-    /*
-     * Add the message to chat state.
-     *
-     * This is important because the Composer
-     * and the UI must share the same message state.
-     */
-
     let message;
 
 
+    /*
+     * Prefer the shared chat state.
+     */
+
     if (
       state &&
-      typeof state.addMessage === "function"
+      typeof state.addMessage ===
+        "function"
     ) {
 
       message =
@@ -140,7 +140,8 @@ export function initializeMessages(context = {}) {
             .toString(36)
             .slice(2)}`,
 
-        role,
+        role:
+          role || "assistant",
 
         content:
           String(content),
@@ -169,7 +170,7 @@ export function initializeMessages(context = {}) {
 
 
   /* =========================================
-     RENDER EXISTING STATE
+     INITIAL RENDER
      ========================================= */
 
   renderMessages(
@@ -186,10 +187,6 @@ export function initializeMessages(context = {}) {
     message = "",
     error = false
   ) {
-
-    /*
-     * Try the shell's status element first.
-     */
 
     const status =
       elements.chatStatus ||
@@ -221,13 +218,13 @@ export function initializeMessages(context = {}) {
 
 
   /* =========================================
-     CLEAR MESSAGES
+     CLEAR MESSAGE UI + STATE
      ========================================= */
 
-  function clearMessages() {
+  function clearMessagesLocal() {
 
     /*
-     * Clear state first.
+     * Clear shared state.
      */
 
     if (
@@ -242,11 +239,12 @@ export function initializeMessages(context = {}) {
 
 
     /*
-     * Then clear UI.
+     * Clear rendered messages.
      */
 
-    messagesContainer.innerHTML =
-      "";
+    clearMessages(
+      messagesContainer
+    );
 
   }
 
@@ -258,10 +256,8 @@ export function initializeMessages(context = {}) {
   function cleanup() {
 
     /*
-     * Nothing persistent is attached here
-     * currently, but keeping cleanup makes
-     * the module compatible with the master
-     * controller.
+     * No persistent event listeners are owned
+     * by this module at the moment.
      */
 
   }
@@ -279,7 +275,8 @@ export function initializeMessages(context = {}) {
 
     showStatus,
 
-    clearMessages,
+    clearMessages:
+      clearMessagesLocal,
 
     renderMessages: (
       messages = []
@@ -384,6 +381,10 @@ export function appendMessage(
   }
 
 
+  /* =========================================
+     MESSAGE ROW
+     ========================================= */
+
   const row =
     document.createElement(
       "div"
@@ -398,9 +399,9 @@ export function appendMessage(
     }`;
 
 
-  /*
-   * Avatar
-   */
+  /* =========================================
+     AVATAR
+     ========================================= */
 
   const avatar =
     document.createElement(
@@ -418,9 +419,9 @@ export function appendMessage(
       : "🦁";
 
 
-  /*
-   * Bubble
-   */
+  /* =========================================
+     MESSAGE BUBBLE
+     ========================================= */
 
   const bubble =
     document.createElement(
@@ -436,9 +437,9 @@ export function appendMessage(
     }`;
 
 
-  /*
-   * Message text
-   */
+  /* =========================================
+     MESSAGE TEXT
+     ========================================= */
 
   const text =
     document.createElement(
@@ -454,9 +455,9 @@ export function appendMessage(
     String(content);
 
 
-  /*
-   * Build message
-   */
+  /* =========================================
+     BUILD MESSAGE
+     ========================================= */
 
   bubble.appendChild(
     text
@@ -478,9 +479,9 @@ export function appendMessage(
   );
 
 
-  /*
-   * Always keep latest message visible.
-   */
+  /* =========================================
+     KEEP LATEST MESSAGE VISIBLE
+     ========================================= */
 
   scrollToBottom(
     container
@@ -488,6 +489,35 @@ export function appendMessage(
 
 
   return row;
+
+}
+
+
+/* =========================================
+   CLEAR MESSAGES — NAMED EXPORT
+   =========================================
+
+   IMPORTANT:
+   This MUST remain a top-level named export.
+
+   Other modules may use:
+
+       import {
+         clearMessages
+       } from "./chat/messages.js";
+   ========================================= */
+
+export function clearMessages(
+  container
+) {
+
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML =
+    "";
 
 }
 
@@ -522,8 +552,15 @@ export function scrollToBottom(
    ========================================= */
 
 export default {
+
   initializeMessages,
+
   renderMessages,
+
   appendMessage,
+
+  clearMessages,
+
   scrollToBottom
+
 };
