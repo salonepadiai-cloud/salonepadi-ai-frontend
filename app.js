@@ -43,9 +43,9 @@ function renderHome() {
       </div>
 
       <div class="ask-box">
-        <input type="text" placeholder="Ask Johnny anything..." />
+        <input type="text" id="home-input" placeholder="Ask Johnny anything..." />
         <button class="ask-box__mic" aria-label="Voice input">${iconMic()}</button>
-        <button class="ask-box__send" aria-label="Send">${iconSend()}</button>
+        <button class="ask-box__send" id="home-send" aria-label="Send">${iconSend()}</button>
       </div>
 
       <div class="quick-actions">
@@ -73,14 +73,31 @@ function renderHome() {
 
     <nav class="bottom-nav">
       ${navItem('Home', iconHome(), true)}
-      ${navItem('Chat', iconChat(), false)}
-      <div class="bottom-nav__orb-btn orb" style="width:52px;height:52px;">
+      <button class="bottom-nav__item" onclick="goToChat()">${iconChat()}<span>Chat</span></button>
+      <div class="bottom-nav__orb-btn orb" style="width:52px;height:52px; cursor:pointer;" onclick="goToChat()">
         <span class="eye"></span><span class="eye"></span>
       </div>
       ${navItem('Tools', iconTools(), false)}
       ${navItem('Profile', iconProfile(), false)}
     </nav>
   `;
+
+  document.getElementById('home-send').addEventListener('click', submitHomeInput);
+  document.getElementById('home-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); submitHomeInput(); }
+  });
+}
+
+function submitHomeInput() {
+  const input = document.getElementById('home-input');
+  const text = input.value.trim();
+  if (!text) return;
+  sessionStorage.setItem('jt_pending_message', text);
+  goToChat();
+}
+
+function goToChat() {
+  window.location.href = 'pages/chat/chat.html';
 }
 
 function quickAction(label, icon) {
