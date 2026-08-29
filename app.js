@@ -187,6 +187,11 @@ async function loadRecentActivity() {
       )
       .join('');
   } catch (err) {
+    if (err.status === 401) {
+      AuthService.clearSession();
+      window.location.href = 'auth/login/login.html';
+      return;
+    }
     el.innerHTML = `<div class="empty-state">Couldn't load activity: ${escapeHtml(err.message)}</div>`;
   }
 }
