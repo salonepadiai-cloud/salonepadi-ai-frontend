@@ -97,6 +97,12 @@ async function sendMessage(text) {
     appendAIMessage(data.message.content);
   } catch (err) {
     removeThinking();
+    if (err.status === 401) {
+      AuthService.clearSession();
+      appendErrorMessage('Your session expired. Redirecting to log in...');
+      setTimeout(() => { window.location.href = '../../auth/login/login.html'; }, 1200);
+      return;
+    }
     appendErrorMessage(err.message || 'Something went wrong.');
   } finally {
     sending = false;
