@@ -118,7 +118,7 @@ function renderHome() {
       <div class="bottom-nav__orb-btn orb" style="width:52px;height:52px; cursor:pointer;" onclick="goToLive()">
         <span class="eye"></span><span class="eye"></span>
       </div>
-      ${navItem('Tools', iconTools(), false)}
+      <button class="bottom-nav__item" onclick="goToTools()">${iconTools()}<span>Tools</span></button>
       <button class="bottom-nav__item" onclick="goToProfile()">${iconProfile()}<span>Profile</span></button>
     </nav>
   `;
@@ -163,6 +163,10 @@ function goToLive() {
 
 function goToProfile() {
   window.location.href = 'pages/profile/profile.html';
+}
+
+function goToTools() {
+  window.location.href = 'pages/tools/tools.html';
 }
 
 function quickAction(label, icon) {
