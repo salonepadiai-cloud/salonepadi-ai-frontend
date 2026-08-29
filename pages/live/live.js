@@ -104,7 +104,7 @@ async function handleUtterance(text) {
 
   try {
     if (!conversationId) {
-      const conversation = await ChatService.createConversation();
+      const conversation = await ChatService.createConversation(ChatService.deriveTitle(text));
       conversationId = conversation.id;
     }
     const data = await ChatService.sendMessage(conversationId, text);
@@ -227,4 +227,4 @@ if (!speechSupported) {
   typeBar.classList.add('is-visible');
 } else {
   setState('idle');
-  }
+}
