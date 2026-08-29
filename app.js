@@ -119,7 +119,7 @@ function renderHome() {
         <span class="eye"></span><span class="eye"></span>
       </div>
       ${navItem('Tools', iconTools(), false)}
-      ${navItem('Profile', iconProfile(), false)}
+      <button class="bottom-nav__item" onclick="goToProfile()">${iconProfile()}<span>Profile</span></button>
     </nav>
   `;
 
@@ -159,6 +159,10 @@ function goToChat() {
 
 function goToLive() {
   window.location.href = 'pages/live/live.html';
+}
+
+function goToProfile() {
+  window.location.href = 'pages/profile/profile.html';
 }
 
 function quickAction(label, icon) {
@@ -358,4 +362,8 @@ function escapeHtml(str) {
 renderHome();
 checkSystemStatus();
 loadSidebarChats();
-    
+
+if (sessionStorage.getItem('jt_open_sidebar')) {
+  sessionStorage.removeItem('jt_open_sidebar');
+  openSidebar();
+}
