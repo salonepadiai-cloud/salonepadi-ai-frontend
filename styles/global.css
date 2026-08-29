@@ -157,7 +157,11 @@ a { color: inherit; text-decoration: none; }
   display: flex;
   flex-direction: column;
   gap: 2px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
+.sidebar__chat-item:active { background: var(--bg-card); }
 .sidebar__chat-item time {
   font-size: 11px;
   color: var(--text-muted);
@@ -357,4 +361,43 @@ a { color: inherit; text-decoration: none; }
 }
 .bottom-nav__item.is-active { color: var(--accent-purple); }
 .bottom-nav__orb-btn { transform: translateY(-6px); }
+
+/* ---- Action sheet (long-press menu on sidebar chats) ---- */
+.action-sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.action-sheet {
+  background: var(--bg-elevated);
+  width: 100%;
+  max-width: 480px;
+  border-radius: 20px 20px 0 0;
+  padding: var(--space-4) var(--space-4) calc(var(--space-4) + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.action-sheet__title {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
+  padding: 4px 4px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.action-sheet__btn {
+  text-align: left;
+  padding: 14px 8px;
+  font-size: 15px;
+  border-radius: var(--radius-md);
+}
+.action-sheet__btn--danger { color: var(--status-bad); }
   
