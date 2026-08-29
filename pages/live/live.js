@@ -111,6 +111,14 @@ async function handleUtterance(text) {
     appendAIMessage(data.message.content);
     speak(data.message.content);
   } catch (err) {
+    if (err.status === 401) {
+      AuthService.clearSession();
+      appendErrorMessage('Your session expired. Redirecting to log in...');
+      setState('idle');
+      busy = false;
+      setTimeout(() => { window.location.href = '../../auth/login/login.html'; }, 1200);
+      return;
+    }
     appendErrorMessage(err.message || 'Something went wrong.');
     busy = false;
     setState('idle');
@@ -219,5 +227,4 @@ if (!speechSupported) {
   typeBar.classList.add('is-visible');
 } else {
   setState('idle');
-}
-    
+  }
