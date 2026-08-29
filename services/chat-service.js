@@ -22,4 +22,9 @@ const ChatService = {
     const data = await apiRequest('/api/chat/conversations', { auth: true });
     return data.conversations || [];
   },
+
+  deriveTitle(text) {
+    const clean = text.trim().replace(/\s+/g, ' ');
+    return clean.length > 40 ? clean.slice(0, 40) + '\u2026' : clean;
+  },
 };
