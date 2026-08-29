@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>WhatsApp AI Plugin — JOHNNY TEC OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../../../styles/variables.css" />
+<link rel="stylesheet" href="../../../styles/global.css" />
+<link rel="stylesheet" href="whatsapp.css" />
+</head>
+<body>
+<div id="app">
+  <header class="top-bar">
+    <div class="top-bar__left">
+      <button class="top-bar__icon-btn" id="back-btn" aria-label="Back">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="tool-tile-icon" style="width:34px;height:34px;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1s-.6.8-.7.9c-.1.1-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.4.2-.4.5-1.3.1-.1.1-.3 0-.4l-.7-1.6c-.2-.4-.4-.4-.5-.4h-.5a.9.9 0 0 0-.6.3 2.7 2.7 0 0 0-.8 2 4.7 4.7 0 0 0 1 2.5 10.7 10.7 0 0 0 4.4 3.9c1.6.7 1.6.4 1.9.4a1.6 1.6 0 0 0 1.1-.8 1.4 1.4 0 0 0 .1-.8c-.1-.1-.2-.2-.4-.3Z"/></svg>
+      </div>
+      <div>
+        <div class="top-bar__title">WhatsApp AI Plugin</div>
+        <div class="top-bar__subtitle">AI-powered WhatsApp Assistant</div>
+      </div>
+    </div>
+    <div class="plugin-header-toggle">
+      <span id="plugin-active-label">Inactive</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="plugin-active-toggle" disabled />
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+    </div>
+  </header>
+
+  <main class="screen">
+    <div class="info-banner">
+      <strong>Heads up:</strong> this plugin needs a real WhatsApp Business API connection on the backend (webhook + message storage + auto-reply engine). The interface below is fully wired to call it — it'll switch from Offline to live data automatically once those backend routes exist.
+    </div>
+
+    <section class="card">
+      <div class="section-header"><h2>Connection Status</h2></div>
+      <div class="wa-connection-icon">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5.1-1.3A10 10 0 1 0 12 2Zm0 18a8 8 0 0 1-4.1-1.1l-.3-.2-3 .8.8-2.9-.2-.3A8 8 0 1 1 12 20Zm4.4-5.9c-.2-.1-1.4-.7-1.6-.8-.2-.1-.4-.1-.5.1s-.6.8-.7.9c-.1.1-.3.2-.5.1a6.6 6.6 0 0 1-3.3-2.9c-.2-.4.2-.4.5-1.3.1-.1.1-.3 0-.4l-.7-1.6c-.2-.4-.4-.4-.5-.4h-.5a.9.9 0 0 0-.6.3 2.7 2.7 0 0 0-.8 2 4.7 4.7 0 0 0 1 2.5 10.7 10.7 0 0 0 4.4 3.9c1.6.7 1.6.4 1.9.4a1.6 1.6 0 0 0 1.1-.8 1.4 1.4 0 0 0 .1-.8c-.1-.1-.2-.2-.4-.3Z"/></svg>
+      </div>
+      <div id="wa-status-row" class="wa-status-row wa-status-row--offline">
+        <span class="wa-status-dot"></span><span>Checking...</span>
+      </div>
+      <div class="wa-status-desc" id="wa-status-desc">Checking connection...</div>
+      <button class="btn-secondary" id="view-qr-btn" disabled>View QR Code</button>
+    </section>
+
+    <section class="card">
+      <div class="section-header">
+        <h2>AI Summary</h2>
+        <span class="select-fake">Today</span>
+      </div>
+      <div class="summary-grid">
+        <div class="summary-cell">
+          <div class="summary-cell-label">Total Messages</div>
+          <div class="summary-cell-value" id="stat-total">—</div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-cell-label">AI Replied</div>
+          <div class="summary-cell-value" id="stat-replied">—</div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-cell-label">Important</div>
+          <div class="summary-cell-value" id="stat-important">—</div>
+        </div>
+        <div class="summary-cell">
+          <div class="summary-cell-label">Auto Reply</div>
+          <div class="summary-cell-value" id="stat-autoreply">—</div>
+        </div>
+      </div>
+      <div class="precision-row">
+        <div class="precision-label"><span>Precision Rate</span><span id="precision-value">—</span></div>
+        <div class="precision-bar"><div class="precision-bar-fill" id="precision-fill"></div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-header"><h2>Auto Reply Rules</h2></div>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:var(--space-2);">Control how AI replies to messages.</p>
+
+      <div class="rule-row">
+        <div class="rule-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H8l-4 4Z"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="rule-title">Important Messages</div>
+          <div class="rule-subtitle">Reply to important messages from family and close contacts</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" disabled />
+          <span class="track"><span class="thumb"></span></span>
+        </label>
+      </div>
+
+      <div class="rule-row">
+        <div class="rule-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="rule-title">Work &amp; Business</div>
+          <div class="rule-subtitle">Reply to work-related messages during working hours</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" disabled />
+          <span class="track"><span class="thumb"></span></span>
+        </label>
+      </div>
+
+      <div class="rule-row">
+        <div class="rule-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H8l-4 4Z"/></svg>
+        </div>
+        <div style="flex:1;">
+          <div class="rule-title">Custom Keywords</div>
+          <div class="rule-subtitle">Reply to messages containing specific keywords</div>
+        </div>
+        <label class="toggle-switch">
+          <input type="checkbox" disabled />
+          <span class="track"><span class="thumb"></span></span>
+        </label>
+      </div>
+      <p class="disabled-note">Rules are read-only until the backend supports saving them.</p>
+    </section>
+
+    <section class="card">
+      <div class="section-header"><h2>Reply Behavior</h2></div>
+
+      <div class="radio-row">
+        <div class="radio-circle"></div>
+        <div>
+          <div class="radio-title">Reply to All</div>
+          <div class="radio-subtitle">Reply to all incoming messages</div>
+        </div>
+      </div>
+      <div class="radio-row">
+        <div class="radio-circle"></div>
+        <div>
+          <div class="radio-title">Reply to Important Only</div>
+          <div class="radio-subtitle">Only reply to important messages</div>
+        </div>
+      </div>
+      <div class="radio-row">
+        <div class="radio-circle"></div>
+        <div>
+          <div class="radio-title">Reply to Selected Contacts</div>
+          <div class="radio-subtitle">Only reply to selected contacts</div>
+        </div>
+      </div>
+
+      <div class="select-row">
+        <span>AI Personality</span>
+        <span class="select-fake">Not set</span>
+      </div>
+      <div class="select-row">
+        <span>Language</span>
+        <span class="select-fake">Not set</span>
+      </div>
+      <p class="disabled-note">Not selectable yet — no saved preference exists on the backend.</p>
+    </section>
+
+    <section class="card">
+      <div class="section-header"><h2>AI Message Log</h2></div>
+      <p style="font-size:12px; color:var(--text-muted); margin-bottom:var(--space-2);">View messages AI has replied to.</p>
+      <div id="wa-message-log">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-header"><h2>Quick Actions</h2></div>
+      <div class="quick-actions-grid">
+        <button class="quick-action-tile" data-action="test">
+          <div class="quick-action-tile-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H8l-4 4Z"/></svg>
+          </div>
+          <div>
+            <div class="quick-action-tile-title">Test AI Reply</div>
+            <div class="quick-action-tile-subtitle">Send a test message</div>
+          </div>
+        </button>
+        <button class="quick-action-tile" data-action="sync">
+          <div class="quick-action-tile-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 1 3 6.7"/><path d="M3 21v-5h5"/></svg>
+          </div>
+          <div>
+            <div class="quick-action-tile-title">Sync Now</div>
+            <div class="quick-action-tile-subtitle">Sync messages now</div>
+          </div>
+        </button>
+        <button class="quick-action-tile" data-action="export">
+          <div class="quick-action-tile-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+          </div>
+          <div>
+            <div class="quick-action-tile-title">Export Logs</div>
+            <div class="quick-action-tile-subtitle">Download message logs</div>
+          </div>
+        </button>
+        <button class="quick-action-tile" data-action="settings">
+          <div class="quick-action-tile-icon">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>
+          </div>
+          <div>
+            <div class="quick-action-tile-title">Plugin Settings</div>
+            <div class="quick-action-tile-subtitle">Configure plugin settings</div>
+          </div>
+        </button>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="section-header"><h2>Recent Activity</h2></div>
+      <div id="wa-activity">
+        <div class="empty-state">Loading...</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script src="../../../config/config.js"></script>
+<script src="../../../services/api.js"></script>
+<script src="../../../services/auth-service.js"></script>
+<script src="whatsapp.js"></script>
+</body>
+</html>
