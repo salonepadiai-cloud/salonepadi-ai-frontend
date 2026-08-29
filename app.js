@@ -214,13 +214,29 @@ function relativeTime(iso) {
   return `${days}d ago`;
 }
 
+function getHiddenIds() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem('jt_hidden_conversations')) || []);
+  } catch (_) {
+    return new Set();
+  }
+}
+
+function hideConversation(id) {
+  const hidden = getHiddenIds();
+  hidden.add(id);
+  localStorage.setItem('jt_hidden_conversations', JSON.stringify([...hidden]));
+  loadSidebarChats();
+}
+
 async function loadSidebarChats() {
   const el = document.getElementById('sidebar-chats');
   if (!el) return;
 
   try {
     const data = await apiRequest('/api/chat/conversations', { auth: true });
-    const conversations = data.conversations || [];
+    const hidden = getHiddenIds();
+    const conversations = (data.conversations || []).filter((c) => !hidden.has(c.id));
 
     if (conversations.length === 0) {
       el.innerHTML = `<div class="empty-state">No conversations yet.</div>`;
@@ -231,13 +247,15 @@ async function loadSidebarChats() {
       .slice(0, 15)
       .map(
         (c) => `
-        <div class="sidebar__chat-item">
+        <div class="sidebar__chat-item" data-id="${c.id}" data-title="${escapeHtml(c.title || 'New Chat')}">
           <span>${escapeHtml(c.title || 'Untitled chat')}</span>
           <time>${relativeTime(c.updated_at)}</time>
         </div>
       `
       )
       .join('');
+
+    attachChatItemHandlers();
   } catch (err) {
     if (err.status === 401) {
       AuthService.clearSession();
@@ -245,6 +263,89 @@ async function loadSidebarChats() {
       return;
     }
     el.innerHTML = `<div class="empty-state">Couldn't load chats: ${escapeHtml(err.message)}</div>`;
+  }
+}
+
+function attachChatItemHandlers() {
+  document.querySelectorAll('.sidebar__chat-item').forEach((item) => {
+    let pressTimer = null;
+    let longPressed = false;
+    const id = item.dataset.id;
+    const title = item.dataset.title;
+
+    const start = () => {
+      longPressed = false;
+      pressTimer = setTimeout(() => {
+        longPressed = true;
+        showChatActionSheet(id, title);
+      }, 450);
+    };
+    const cancel = () => clearTimeout(pressTimer);
+    const handleClick = () => {
+      if (longPressed) { longPressed = false; return; }
+      window.location.href = `pages/chat/chat.html?id=${id}`;
+    };
+
+    item.addEventListener('touchstart', start, { passive: true });
+    item.addEventListener('touchend', cancel);
+    item.addEventListener('touchmove', cancel);
+    item.addEventListener('mousedown', start);
+    item.addEventListener('mouseup', cancel);
+    item.addEventListener('mouseleave', cancel);
+    item.addEventListener('click', handleClick);
+  });
+}
+
+function showChatActionSheet(id, title) {
+  const overlay = document.createElement('div');
+  overlay.className = 'action-sheet-overlay';
+  overlay.innerHTML = `
+    <div class="action-sheet">
+      <div class="action-sheet__title">${escapeHtml(title)}</div>
+      <button class="action-sheet__btn" id="as-open">Open conversation</button>
+      <button class="action-sheet__btn" id="as-share">Share</button>
+      <button class="action-sheet__btn action-sheet__btn--danger" id="as-hide">Hide from list</button>
+      <button class="action-sheet__btn" id="as-cancel">Cancel</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+  overlay.querySelector('#as-open').onclick = () => {
+    window.location.href = `pages/chat/chat.html?id=${id}`;
+  };
+  overlay.querySelector('#as-share').onclick = async () => {
+    await shareConversation(id, title);
+    overlay.remove();
+  };
+  overlay.querySelector('#as-hide').onclick = () => {
+    hideConversation(id);
+    overlay.remove();
+  };
+  overlay.querySelector('#as-cancel').onclick = () => overlay.remove();
+}
+
+async function shareConversation(id, title) {
+  try {
+    const data = await apiRequest(`/api/chat/conversations/${id}/messages`, { auth: true });
+    const messages = data.messages || [];
+    const transcript = messages
+      .map((m) => `${m.role === 'user' ? 'You' : 'Johnny'}: ${m.content}`)
+      .join('\n\n');
+    const shareText = `${title}\n\n${transcript}`;
+
+    if (navigator.share) {
+      await navigator.share({ title, text: shareText });
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(shareText);
+      alert('Conversation copied to clipboard.');
+    } else {
+      alert('Sharing isn\u2019t supported on this browser.');
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      alert('Could not share: ' + err.message);
+    }
   }
 }
 
@@ -257,3 +358,4 @@ function escapeHtml(str) {
 renderHome();
 checkSystemStatus();
 loadSidebarChats();
+    
