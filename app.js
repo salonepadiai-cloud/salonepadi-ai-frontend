@@ -23,6 +23,9 @@ function renderHome() {
   app.innerHTML = `
     <header class="top-bar">
       <div class="top-bar__left">
+        <button class="top-bar__icon-btn" id="menu-btn" aria-label="Menu">
+          ${iconMenu()}
+        </button>
         <div class="orb" style="width:36px;height:36px;">
           <span class="eye"></span><span class="eye"></span>
         </div>
@@ -31,15 +34,30 @@ function renderHome() {
           <div class="top-bar__subtitle">Your AI Assistant</div>
         </div>
       </div>
-      <div class="top-bar__right" style="display:flex; gap:4px;">
-        <button class="top-bar__icon-btn" aria-label="Notifications">
-          ${iconBell()}
-        </button>
-        <button class="top-bar__icon-btn" id="logout-btn" aria-label="Log out">
+      <button class="top-bar__icon-btn" aria-label="Notifications">
+        ${iconBell()}
+      </button>
+    </header>
+
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__header">
+        <div class="orb" style="width:32px;height:32px;">
+          <span class="eye"></span><span class="eye"></span>
+        </div>
+        <div class="sidebar__title">${CONFIG.APP_NAME}</div>
+      </div>
+      <div class="sidebar__section-label">Recent Chats</div>
+      <div class="sidebar__chats" id="sidebar-chats">
+        <div class="empty-state">Loading...</div>
+      </div>
+      <div class="sidebar__footer">
+        <button class="sidebar__logout-btn" id="logout-btn">
           ${iconLogout()}
+          <span>Log out</span>
         </button>
       </div>
-    </header>
+    </aside>
 
     <main class="screen">
       <div class="greeting">
@@ -71,8 +89,26 @@ function renderHome() {
       </section>
 
       <section class="card">
-        <div class="section-header"><h2>Recent Activity</h2></div>
-        <div id="recent-activity" class="empty-state">Loading...</div>
+        <div class="section-header"><h2>How Johnny Works</h2></div>
+        <div class="flow-demo">
+          <div class="flow-node">
+            <div class="flow-icon">${iconProfile()}</div>
+            <span>You</span>
+          </div>
+          <div class="flow-line"><span class="flow-dot"></span></div>
+          <div class="flow-node">
+            <div class="orb" style="width:44px;height:44px;">
+              <span class="eye"></span><span class="eye"></span>
+            </div>
+            <span>Johnny AI</span>
+          </div>
+          <div class="flow-line flow-line--delay"><span class="flow-dot"></span></div>
+          <div class="flow-node">
+            <div class="flow-icon flow-icon--reply">${iconChat()}</div>
+            <span>Response</span>
+          </div>
+        </div>
+        <p class="flow-caption">Your message travels to Johnny's AI engine and back in real time.</p>
       </section>
     </main>
 
@@ -91,6 +127,22 @@ function renderHome() {
   document.getElementById('home-input').addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); submitHomeInput(); }
   });
+  document.getElementById('menu-btn').addEventListener('click', openSidebar);
+  document.getElementById('sidebar-overlay').addEventListener('click', closeSidebar);
+  document.getElementById('logout-btn').addEventListener('click', async () => {
+    await AuthService.logout();
+    window.location.href = 'auth/login/login.html';
+  });
+}
+
+function openSidebar() {
+  document.getElementById('sidebar').classList.add('is-open');
+  document.getElementById('sidebar-overlay').classList.add('is-open');
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('is-open');
+  document.getElementById('sidebar-overlay').classList.remove('is-open');
 }
 
 function submitHomeInput() {
@@ -131,6 +183,7 @@ function iconTools() { return svg('<circle cx="6" cy="6" r="3"/><circle cx="18" 
 function iconProfile() { return svg('<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>'); }
 
 function iconLogout() { return svg('<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>'); }
+function iconMenu() { return svg('<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>'); }
 
 function svg(inner) {
   return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${inner}</svg>`;
@@ -161,8 +214,8 @@ function relativeTime(iso) {
   return `${days}d ago`;
 }
 
-async function loadRecentActivity() {
-  const el = document.getElementById('recent-activity');
+async function loadSidebarChats() {
+  const el = document.getElementById('sidebar-chats');
   if (!el) return;
 
   try {
@@ -174,14 +227,13 @@ async function loadRecentActivity() {
       return;
     }
 
-    el.className = '';
     el.innerHTML = conversations
-      .slice(0, 5)
+      .slice(0, 15)
       .map(
         (c) => `
-        <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border-subtle);">
-          <span style="font-size:14px;">${escapeHtml(c.title || 'Untitled chat')}</span>
-          <span style="font-size:12px; color:var(--text-muted); flex-shrink:0; margin-left:8px;">${relativeTime(c.updated_at)}</span>
+        <div class="sidebar__chat-item">
+          <span>${escapeHtml(c.title || 'Untitled chat')}</span>
+          <time>${relativeTime(c.updated_at)}</time>
         </div>
       `
       )
@@ -192,7 +244,7 @@ async function loadRecentActivity() {
       window.location.href = 'auth/login/login.html';
       return;
     }
-    el.innerHTML = `<div class="empty-state">Couldn't load activity: ${escapeHtml(err.message)}</div>`;
+    el.innerHTML = `<div class="empty-state">Couldn't load chats: ${escapeHtml(err.message)}</div>`;
   }
 }
 
@@ -204,9 +256,4 @@ function escapeHtml(str) {
 
 renderHome();
 checkSystemStatus();
-loadRecentActivity();
-
-document.getElementById('logout-btn').addEventListener('click', async () => {
-  await AuthService.logout();
-  window.location.href = 'auth/login/login.html';
-});
+loadSidebarChats();
