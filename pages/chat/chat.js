@@ -77,12 +77,8 @@ function appendErrorMessage(text) {
 
 async function ensureConversation() {
   if (conversationId) return conversationId;
-  const data = await apiRequest('/api/chat/conversations', {
-    method: 'POST',
-    auth: true,
-    body: {},
-  });
-  conversationId = data.conversation.id;
+  const conversation = await ChatService.createConversation();
+  conversationId = conversation.id;
   return conversationId;
 }
 
@@ -96,11 +92,7 @@ async function sendMessage(text) {
 
   try {
     const id = await ensureConversation();
-    const data = await apiRequest(`/api/chat/conversations/${id}/messages`, {
-      method: 'POST',
-      auth: true,
-      body: { message: text },
-    });
+    const data = await ChatService.sendMessage(id, text);
     removeThinking();
     appendAIMessage(data.message.content);
   } catch (err) {
