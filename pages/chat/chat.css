@@ -39,6 +39,60 @@
   color: var(--status-bad);
 }
 
+.msg__meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+  padding: 0 4px;
+}
+.msg--user .msg__meta { justify-content: flex-end; }
+.msg__meta .check { color: var(--accent-blue); }
+.msg__col { display: flex; flex-direction: column; }
+.msg--user .msg__col { align-items: flex-end; }
+
+.day-divider {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin: var(--space-2) 0;
+}
+
+.welcome-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-2);
+}
+.welcome-card__title { font-weight: 600; font-size: 15px; color: var(--accent-blue); }
+.welcome-card__status {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 12px; color: var(--status-good);
+  margin: 2px 0 6px;
+}
+.welcome-card__status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--status-good); }
+.welcome-card__desc { font-size: 13px; color: var(--text-secondary); }
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.chip {
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  color: var(--accent-blue);
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: var(--radius-pill);
+}
+
 .chat-empty {
   flex: 1;
   display: flex;
