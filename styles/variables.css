@@ -41,6 +41,9 @@
   --space-5: 24px;
   --space-6: 32px;
 
+  /* Layout */
+  --header-h: 76px;
+
   /* Type */
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-body: 'Inter', system-ui, sans-serif;
