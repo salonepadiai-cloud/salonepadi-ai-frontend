@@ -16,29 +16,89 @@ backBtn.addEventListener('click', () => {
   window.location.href = '../../index.html';
 });
 
+const STARTER_PROMPTS = [
+  'What can you help me with?',
+  'Summarize a piece of text',
+  'Help me write something',
+];
+
 function renderEmptyState() {
   screen.innerHTML = `
-    <div class="chat-empty">
-      <div class="orb" style="width:48px;height:48px;">
+    <div class="welcome-card">
+      <div class="orb" style="width:40px;height:40px; flex-shrink:0;">
         <span class="eye"></span><span class="eye"></span>
       </div>
-      <p>Ask Johnny anything to start a new conversation.</p>
+      <div>
+        <div class="welcome-card__title">${CONFIG.APP_NAME}</div>
+        <div class="welcome-card__status" id="welcome-status" style="color:var(--text-muted);"><span class="welcome-card__status-dot" style="background:var(--text-muted);"></span>Checking...</div>
+        <div class="welcome-card__desc">Your personal AI assistant. Ask me anything!</div>
+      </div>
+    </div>
+    <div class="chip-row" id="starter-chips">
+      ${STARTER_PROMPTS.map((p) => `<button class="chip" data-prompt="${p}">${p}</button>`).join('')}
     </div>
   `;
+  document.querySelectorAll('#starter-chips .chip').forEach((chip) => {
+    chip.addEventListener('click', () => sendMessage(chip.dataset.prompt));
+  });
+  checkBackendStatus();
+}
+
+async function checkBackendStatus() {
+  const statusEl = document.getElementById('welcome-status');
+  if (!statusEl) return;
+  try {
+    await apiRequest('/api/health');
+    statusEl.style.color = 'var(--status-good)';
+    statusEl.innerHTML = `<span class="welcome-card__status-dot" style="background:var(--status-good);"></span>Online`;
+  } catch (_) {
+    statusEl.style.color = 'var(--status-bad)';
+    statusEl.innerHTML = `<span class="welcome-card__status-dot" style="background:var(--status-bad);"></span>Offline`;
+  }
+}
+
+function formatTime(iso) {
+  if (!iso) return '';
+  return new Date(iso).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 }
 
 function scrollToBottom() {
   screen.scrollTop = screen.scrollHeight;
 }
 
+let dayDividerShown = false;
+
+function maybeShowDayDivider() {
+  if (dayDividerShown) return;
+  dayDividerShown = true;
+  const el = document.createElement('div');
+  el.className = 'day-divider';
+  el.textContent = 'Today';
+  screen.appendChild(el);
+}
+
 function appendUserMessage(text) {
-  if (screen.querySelector('.chat-empty')) screen.innerHTML = '';
+  document.querySelector('.welcome-card')?.remove();
+  document.getElementById('starter-chips')?.remove();
+  maybeShowDayDivider();
+
   const el = document.createElement('div');
   el.className = 'msg msg--user';
-  el.innerHTML = `<div class="msg__bubble"></div>`;
+  el.innerHTML = `
+    <div class="msg__col">
+      <div class="msg__bubble"></div>
+      <div class="msg__meta"></div>
+    </div>
+  `;
   el.querySelector('.msg__bubble').textContent = text;
   screen.appendChild(el);
   scrollToBottom();
+  return el;
+}
+
+function finalizeUserMessage(el, createdAt) {
+  const meta = el.querySelector('.msg__meta');
+  meta.innerHTML = `<span>${formatTime(createdAt)}</span><span class="check">\u2713</span>`;
 }
 
 function appendThinking() {
@@ -57,10 +117,16 @@ function removeThinking() {
   document.getElementById('thinking-msg')?.remove();
 }
 
-function appendAIMessage(text) {
+function appendAIMessage(text, createdAt) {
   const el = document.createElement('div');
   el.className = 'msg msg--ai';
-  el.innerHTML = `<div class="orb msg__avatar"><span class="eye"></span><span class="eye"></span></div><div class="msg__bubble"></div>`;
+  el.innerHTML = `
+    <div class="orb msg__avatar"><span class="eye"></span><span class="eye"></span></div>
+    <div class="msg__col">
+      <div class="msg__bubble"></div>
+      <div class="msg__meta"><span>${formatTime(createdAt)}</span></div>
+    </div>
+  `;
   el.querySelector('.msg__bubble').textContent = text;
   screen.appendChild(el);
   scrollToBottom();
@@ -87,14 +153,15 @@ async function sendMessage(text) {
   sending = true;
   sendBtn.disabled = true;
 
-  appendUserMessage(text);
+  const userEl = appendUserMessage(text);
   appendThinking();
 
   try {
     const id = await ensureConversation();
     const data = await ChatService.sendMessage(id, text);
     removeThinking();
-    appendAIMessage(data.message.content);
+    finalizeUserMessage(userEl, data.userMessage?.created_at);
+    appendAIMessage(data.message.content, data.message?.created_at);
   } catch (err) {
     removeThinking();
     if (err.status === 401) {
