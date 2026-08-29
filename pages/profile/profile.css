@@ -169,21 +169,4 @@
 .settings-row-chevron { margin-left: auto; color: var(--text-muted); flex-shrink: 0; }
 .settings-row--danger .settings-row-title { color: var(--status-bad); }
 
-/* ---- Toast (for "coming soon" feedback) ---- */
-.toast {
-  position: fixed;
-  bottom: 90px; left: 50%;
-  transform: translateX(-50%) translateY(20px);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-strong);
-  color: var(--text-primary);
-  padding: 10px 18px;
-  border-radius: var(--radius-pill);
-  font-size: 13px;
-  z-index: 100;
-  opacity: 0;
-  transition: opacity 0.2s, transform 0.2s;
-  pointer-events: none;
-}
-.toast.is-visible { opacity: 1; transform: translateX(-50%) translateY(0); }
   
