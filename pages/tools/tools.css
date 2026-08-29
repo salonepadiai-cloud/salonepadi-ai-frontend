@@ -1,0 +1,42 @@
+.tool-tile {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
+  text-align: left;
+}
+.tool-tile-icon {
+  width: 48px; height: 48px;
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  background: #25d366;
+  color: #fff;
+}
+.tool-tile-title { font-size: 15px; font-weight: 600; }
+.tool-tile-subtitle { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+.tool-tile-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.tool-tile-status-dot { width: 6px; height: 6px; border-radius: 50%; }
+.tool-tile-status--online { color: var(--status-good); }
+.tool-tile-status--online .tool-tile-status-dot { background: var(--status-good); }
+.tool-tile-status--offline { color: var(--text-muted); }
+.tool-tile-status--offline .tool-tile-status-dot { background: var(--text-muted); }
+
+.tools-empty-hint {
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: var(--space-5) var(--space-4);
+}
