@@ -8,12 +8,23 @@ const screen = document.getElementById('chat-screen');
 const input = document.getElementById('chat-input');
 const sendBtn = document.getElementById('chat-send');
 const backBtn = document.getElementById('back-btn');
+const newChatBtn = document.getElementById('new-chat-btn');
 
 let conversationId = null;
 let sending = false;
 
+const urlParams = new URLSearchParams(window.location.search);
+const openConversationId = urlParams.get('id');
+
 backBtn.addEventListener('click', () => {
   window.location.href = '../../index.html';
+});
+
+newChatBtn.addEventListener('click', () => {
+  conversationId = null;
+  dayDividerShown = false;
+  history.replaceState(null, '', 'chat.html');
+  renderEmptyState();
 });
 
 const STARTER_PROMPTS = [
@@ -141,9 +152,50 @@ function appendErrorMessage(text) {
   scrollToBottom();
 }
 
-async function ensureConversation() {
+async function loadConversationHistory(id) {
+  screen.innerHTML = `
+    <div class="chat-empty">
+      <div class="orb" style="width:48px;height:48px;">
+        <span class="eye"></span><span class="eye"></span>
+      </div>
+      <p>Loading conversation...</p>
+    </div>
+  `;
+
+  try {
+    const data = await apiRequest(`/api/chat/conversations/${id}/messages`, { auth: true });
+    const messages = data.messages || [];
+
+    screen.innerHTML = '';
+    dayDividerShown = false;
+
+    if (messages.length === 0) {
+      renderEmptyState();
+      return;
+    }
+
+    maybeShowDayDivider();
+    messages.forEach((m) => {
+      if (m.role === 'user') {
+        const el = appendUserMessage(m.content);
+        finalizeUserMessage(el, m.created_at);
+      } else {
+        appendAIMessage(m.content, m.created_at);
+      }
+    });
+  } catch (err) {
+    if (err.status === 401) {
+      AuthService.clearSession();
+      window.location.href = '../../auth/login/login.html';
+      return;
+    }
+    screen.innerHTML = `<div class="chat-empty"><p>Couldn't load this conversation: ${err.message}</p></div>`;
+  }
+}
+
+async function ensureConversation(firstMessageText) {
   if (conversationId) return conversationId;
-  const conversation = await ChatService.createConversation();
+  const conversation = await ChatService.createConversation(ChatService.deriveTitle(firstMessageText));
   conversationId = conversation.id;
   return conversationId;
 }
@@ -157,7 +209,7 @@ async function sendMessage(text) {
   appendThinking();
 
   try {
-    const id = await ensureConversation();
+    const id = await ensureConversation(text);
     const data = await ChatService.sendMessage(id, text);
     removeThinking();
     finalizeUserMessage(userEl, data.userMessage?.created_at);
@@ -190,13 +242,19 @@ input.addEventListener('keydown', (e) => {
   }
 });
 
-// If the person typed a message on the home screen before landing here,
-// pick it up and send it immediately.
-const pending = sessionStorage.getItem('jt_pending_message');
-if (pending) {
-  sessionStorage.removeItem('jt_pending_message');
-  renderEmptyState();
-  sendMessage(pending);
+// Priority: open an existing conversation (from sidebar tap) > a pending
+// message typed on home > a fresh empty chat.
+if (openConversationId) {
+  conversationId = openConversationId;
+  loadConversationHistory(openConversationId);
 } else {
-  renderEmptyState();
+  const pending = sessionStorage.getItem('jt_pending_message');
+  if (pending) {
+    sessionStorage.removeItem('jt_pending_message');
+    renderEmptyState();
+    sendMessage(pending);
+  } else {
+    renderEmptyState();
+  }
 }
+  
