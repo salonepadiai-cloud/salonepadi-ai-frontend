@@ -79,7 +79,7 @@ function renderHome() {
     <nav class="bottom-nav">
       ${navItem('Home', iconHome(), true)}
       <button class="bottom-nav__item" onclick="goToChat()">${iconChat()}<span>Chat</span></button>
-      <div class="bottom-nav__orb-btn orb" style="width:52px;height:52px; cursor:pointer;" onclick="goToChat()">
+      <div class="bottom-nav__orb-btn orb" style="width:52px;height:52px; cursor:pointer;" onclick="goToLive()">
         <span class="eye"></span><span class="eye"></span>
       </div>
       ${navItem('Tools', iconTools(), false)}
@@ -103,6 +103,10 @@ function submitHomeInput() {
 
 function goToChat() {
   window.location.href = 'pages/chat/chat.html';
+}
+
+function goToLive() {
+  window.location.href = 'pages/live/live.html';
 }
 
 function quickAction(label, icon) {
