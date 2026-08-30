@@ -1,0 +1,8 @@
+{
+  "short_name": "JohnnyTecOS",
+  "name": "JOHNNY TEC OS",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#000000"
+}
