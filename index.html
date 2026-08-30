@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>JOHNNY TEC OS</title>
 
-<!-- PWA Manifest -->
-<link rel="manifest" href="/manifest.json" />
+<!-- PWA Manifest (Note the ./ ) -->
+<link rel="manifest" href="./manifest.json" />
 
 <!-- Fonts & Styles -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,11 +14,11 @@
 <link rel="stylesheet" href="styles/variables.css" />
 <link rel="stylesheet" href="styles/global.css" />
 
-<!-- Service Worker Auto-Update Script -->
+<!-- Service Worker Auto-Update Script (Note the ./ ) -->
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/sw.js').then((reg) => {
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
         reg.onupdatefound = () => {
           const newWorker = reg.installing;
           newWorker.onstatechange = () => {
