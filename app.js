@@ -222,19 +222,21 @@ function relativeTime(iso) {
   return `${days}d ago`;
 }
 
-function getHiddenIds() {
-  try {
-    return new Set(JSON.parse(localStorage.getItem('jt_hidden_conversations')) || []);
-  } catch (_) {
-    return new Set();
-  }
-}
+async function deleteConversationConfirmed(id) {
+  const confirmed = confirm('Delete this conversation? This can\u2019t be undone.');
+  if (!confirmed) return;
 
-function hideConversation(id) {
-  const hidden = getHiddenIds();
-  hidden.add(id);
-  localStorage.setItem('jt_hidden_conversations', JSON.stringify([...hidden]));
-  loadSidebarChats();
+  try {
+    await ChatService.deleteConversation(id);
+    loadSidebarChats();
+  } catch (err) {
+    if (err.status === 401) {
+      AuthService.clearSession();
+      window.location.href = 'auth/login/login.html';
+      return;
+    }
+    alert('Could not delete: ' + err.message);
+  }
 }
 
 async function loadSidebarChats() {
@@ -243,8 +245,7 @@ async function loadSidebarChats() {
 
   try {
     const data = await apiRequest('/api/chat/conversations', { auth: true });
-    const hidden = getHiddenIds();
-    const conversations = (data.conversations || []).filter((c) => !hidden.has(c.id));
+    const conversations = data.conversations || [];
 
     if (conversations.length === 0) {
       el.innerHTML = `<div class="empty-state">No conversations yet.</div>`;
@@ -312,7 +313,7 @@ function showChatActionSheet(id, title) {
       <div class="action-sheet__title">${escapeHtml(title)}</div>
       <button class="action-sheet__btn" id="as-open">Open conversation</button>
       <button class="action-sheet__btn" id="as-share">Share</button>
-      <button class="action-sheet__btn action-sheet__btn--danger" id="as-hide">Hide from list</button>
+      <button class="action-sheet__btn action-sheet__btn--danger" id="as-delete">Delete</button>
       <button class="action-sheet__btn" id="as-cancel">Cancel</button>
     </div>
   `;
@@ -326,9 +327,9 @@ function showChatActionSheet(id, title) {
     await shareConversation(id, title);
     overlay.remove();
   };
-  overlay.querySelector('#as-hide').onclick = () => {
-    hideConversation(id);
+  overlay.querySelector('#as-delete').onclick = () => {
     overlay.remove();
+    deleteConversationConfirmed(id);
   };
   overlay.querySelector('#as-cancel').onclick = () => overlay.remove();
 }
