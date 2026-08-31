@@ -23,6 +23,13 @@ const ChatService = {
     return data.conversations || [];
   },
 
+  async deleteConversation(conversationId) {
+    return apiRequest(`/api/chat/conversations/${conversationId}`, {
+      method: 'DELETE',
+      auth: true,
+    });
+  },
+
   deriveTitle(text) {
     const clean = text.trim().replace(/\s+/g, ' ');
     return clean.length > 40 ? clean.slice(0, 40) + '\u2026' : clean;
