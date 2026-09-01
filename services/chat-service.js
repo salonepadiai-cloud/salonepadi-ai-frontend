@@ -10,11 +10,11 @@ const ChatService = {
     return data.conversation;
   },
 
-  async sendMessage(conversationId, message) {
+  async sendMessage(conversationId, message, provider) {
     return apiRequest(`/api/chat/conversations/${conversationId}/messages`, {
       method: 'POST',
       auth: true,
-      body: { message },
+      body: provider ? { message, provider } : { message },
     });
   },
 
