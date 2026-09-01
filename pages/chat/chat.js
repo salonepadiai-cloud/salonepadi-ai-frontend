@@ -239,7 +239,7 @@ async function sendMessage(text) {
     const data = await ChatService.sendMessage(id, text, provider);
     removeThinking();
     finalizeUserMessage(userEl, data.userMessage?.created_at);
-    appendAIMessage(data.message.content, data.message?.created_at, provider);
+    appendAIMessage(data.message.content, data.message?.created_at, data.message?.provider);
   } catch (err) {
     removeThinking();
     if (err.status === 401) {
