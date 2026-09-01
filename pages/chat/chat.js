@@ -13,6 +13,30 @@ const newChatBtn = document.getElementById('new-chat-btn');
 let conversationId = null;
 let sending = false;
 
+const AI_PROVIDER_KEY = 'jt_ai_provider';
+
+function getSelectedProvider() {
+  return localStorage.getItem(AI_PROVIDER_KEY) || 'groq';
+}
+
+function setSelectedProvider(provider) {
+  localStorage.setItem(AI_PROVIDER_KEY, provider);
+  renderProviderBar();
+}
+
+function renderProviderBar() {
+  const current = getSelectedProvider();
+  document.querySelectorAll('.provider-pill').forEach((btn) => {
+    btn.classList.toggle('is-active', btn.dataset.provider === current);
+  });
+}
+
+document.querySelectorAll('.provider-pill').forEach((btn) => {
+  btn.addEventListener('click', () => setSelectedProvider(btn.dataset.provider));
+});
+
+renderProviderBar();
+
 const urlParams = new URLSearchParams(window.location.search);
 const openConversationId = urlParams.get('id');
 
@@ -128,14 +152,15 @@ function removeThinking() {
   document.getElementById('thinking-msg')?.remove();
 }
 
-function appendAIMessage(text, createdAt) {
+function appendAIMessage(text, createdAt, provider) {
   const el = document.createElement('div');
   el.className = 'msg msg--ai';
+  const providerLabel = provider ? ` \u00b7 via ${provider}` : '';
   el.innerHTML = `
     <div class="orb msg__avatar"><span class="eye"></span><span class="eye"></span></div>
     <div class="msg__col">
       <div class="msg__bubble"></div>
-      <div class="msg__meta"><span>${formatTime(createdAt)}</span></div>
+      <div class="msg__meta"><span>${formatTime(createdAt)}${providerLabel}</span></div>
     </div>
   `;
   el.querySelector('.msg__bubble').textContent = text;
@@ -210,10 +235,11 @@ async function sendMessage(text) {
 
   try {
     const id = await ensureConversation(text);
-    const data = await ChatService.sendMessage(id, text);
+    const provider = getSelectedProvider();
+    const data = await ChatService.sendMessage(id, text, provider);
     removeThinking();
     finalizeUserMessage(userEl, data.userMessage?.created_at);
-    appendAIMessage(data.message.content, data.message?.created_at);
+    appendAIMessage(data.message.content, data.message?.created_at, provider);
   } catch (err) {
     removeThinking();
     if (err.status === 401) {
@@ -257,4 +283,3 @@ if (openConversationId) {
     renderEmptyState();
   }
 }
-  
