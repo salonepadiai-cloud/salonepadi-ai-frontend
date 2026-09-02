@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Gemini Live — Relay Test (diagnostic only)</title>
+<link rel="stylesheet" href="../../styles/variables.css" />
+<link rel="stylesheet" href="../../styles/global.css" />
+<style>
+  body { padding: var(--space-4); }
+  h1 { font-size: 16px; margin-bottom: var(--space-2); }
+  p.note { color: var(--text-muted); font-size: 12px; margin-bottom: var(--space-4); }
+  #log {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    font-family: monospace;
+    font-size: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    height: 300px;
+    overflow-y: auto;
+    margin-bottom: var(--space-3);
+  }
+  #status { font-size: 13px; margin-bottom: var(--space-3); }
+  input, button {
+    padding: 10px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-subtle);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    font-size: 14px;
+  }
+  input { width: 100%; margin-bottom: var(--space-2); }
+  button { width: 100%; background: var(--gradient-orb); color: #fff; border: none; }
+</style>
+</head>
+<body>
+<h1>Gemini Live \u2014 Relay Diagnostic</h1>
+<p class="note">Temporary test page. Not part of the app navigation \u2014 confirms the WebSocket relay reaches Gemini before real audio handling is built. Text only.</p>
+
+<div id="status">Not connected.</div>
+<div id="log"></div>
+<input type="text" id="msg-input" placeholder="Type a message to send once connected..." />
+<button id="send-btn">Connect &amp; Send</button>
+
+<script src="../../config/config.js"></script>
+<script src="../../services/api.js"></script>
+<script src="../../services/auth-service.js"></script>
+<script>
+  const logEl = document.getElementById('log');
+  const statusEl = document.getElementById('status');
+  const input = document.getElementById('msg-input');
+  const btn = document.getElementById('send-btn');
+  let socket = null;
+
+  function log(line) {
+    logEl.textContent += line + '\n';
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function wsUrlFromApiBase(path) {
+    // Turns https://host into wss://host, http://host into ws://host
+    const httpUrl = new URL(path, CONFIG.API_BASE_URL);
+    httpUrl.protocol = httpUrl.protocol === 'https:' ? 'wss:' : 'ws:';
+    return httpUrl.toString();
+  }
+
+  btn.addEventListener('click', () => {
+    if (!AuthService.isAuthenticated()) {
+      log('Not logged in \u2014 log in via the main app first, then reload this page.');
+      return;
+    }
+
+    if (!socket || socket.readyState === WebSocket.CLOSED) {
+      const token = AuthService.getToken();
+      const url = wsUrlFromApiBase(`/ws/live?token=${encodeURIComponent(token)}`);
+      log('Connecting to ' + url.replace(token, '<token>') + ' ...');
+      statusEl.textContent = 'Connecting...';
+
+      socket = new WebSocket(url);
+
+      socket.addEventListener('open', () => {
+        statusEl.textContent = 'Connected. Sending setup message...';
+        log('[open] Connected to relay.');
+
+        // Minimal Gemini Live setup message, text-only response.
+        const setupMessage = {
+          setup: {
+            model: 'models/gemini-2.0-flash-live-preview-04-09',
+            generationConfig: {
+              responseModalities: ['TEXT']
+            }
+          }
+        };
+        socket.send(JSON.stringify(setupMessage));
+        log('[sent setup] ' + JSON.stringify(setupMessage));
+      });
+
+      socket.addEventListener('message', (event) => {
+        log('[received] ' + event.data);
+        statusEl.textContent = 'Connected \u2014 receiving messages.';
+      });
+
+      socket.addEventListener('close', (event) => {
+        log(`[closed] code=${event.code} reason=${event.reason}`);
+        statusEl.textContent = 'Closed.';
+      });
+
+      socket.addEventListener('error', () => {
+        log('[error] WebSocket error \u2014 check backend logs.');
+      });
+
+      return;
+    }
+
+    // Already connected — send a text turn.
+    const text = input.value.trim();
+    if (!text) return;
+
+    const clientContentMessage = {
+      clientContent: {
+        turns: [{ role: 'user', parts: [{ text }] }],
+        turnComplete: true
+      }
+    };
+    socket.send(JSON.stringify(clientContentMessage));
+    log('[sent] ' + text);
+    input.value = '';
+  });
+</script>
+</body>
+</html>
