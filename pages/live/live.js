@@ -1,23 +1,23 @@
 // JOHNNY TEC OS — pages/live/live.js
 //
 // Voice-only Live Conversation. No transcript, no typing — tap the
-// orb to talk, the AI replies out loud. Two engines, switchable from
-// the settings icon:
-//   - "browser": SpeechRecognition + SpeechSynthesis (default, always
-//     available).
+// orb to talk, the AI replies out loud. The orb itself is a real
+// canvas-rendered rotating dot-sphere (Fibonacci sphere distribution,
+// depth-shaded), not a static image or CSS gradient trick.
+//
+// Two engines, switchable from the settings icon:
+//   - "browser": SpeechRecognition + SpeechSynthesis (default).
 //   - "gemini": streams mic audio to our /ws/live relay -> Gemini
 //     Live API (beta) and plays its audio replies back.
 //
-// Any failure (Gemini connect timeout, mic error, expired session)
-// shows as a real toast message and — for Gemini — automatically
-// falls back to the browser engine rather than leaving a dead orb.
+// Any failure shows as a toast, and Gemini failures auto-fall-back
+// to the browser engine.
 
 if (!AuthService.isAuthenticated()) {
   window.location.href = '../../auth/login/login.html';
 }
 
-const orb = document.getElementById('live-orb');
-const tickRing = document.getElementById('tick-ring');
+const orbEl = document.getElementById('live-orb');
 const waveLeft = document.getElementById('wave-left');
 const waveRight = document.getElementById('wave-right');
 const statusTitle = document.getElementById('status-title');
@@ -29,21 +29,11 @@ let conversationId = null;
 let recognition = null;
 let listening = false;
 let busy = false; // true while thinking or speaking — orb tap is ignored
+let currentState = 'idle';
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 const speechSupported = !!SpeechRecognitionAPI;
 const ttsSupported = 'speechSynthesis' in window;
-
-// Build the rotating tick-mark ring used in the "speaking" state.
-(function buildTickRing() {
-  const count = 28;
-  for (let i = 0; i < count; i++) {
-    const tick = document.createElement('span');
-    tick.style.transform = `rotate(${(360 / count) * i}deg) translateY(-60px)`;
-    tick.style.animationDelay = `${(i % 6) * 0.1}s`;
-    tickRing.appendChild(tick);
-  }
-})();
 
 backBtn.addEventListener('click', leaveLiveConversation);
 
@@ -67,7 +57,8 @@ function showToast(message) {
 
 // ---- Orb / status state ----
 function setState(state) {
-  orb.className = `big-orb big-orb--${state}`;
+  currentState = state;
+  orbEl.className = `big-orb big-orb--${state}`;
   waveLeft.classList.toggle('is-active', state === 'listening');
   waveRight.classList.toggle('is-active', state === 'listening');
 
@@ -81,6 +72,118 @@ function setState(state) {
   statusTitle.textContent = copy[0];
   statusSubtitle.textContent = copy[1];
 }
+
+/*
+|--------------------------------------------------------------------------
+| CANVAS DOT-SPHERE
+|--------------------------------------------------------------------------
+|
+| A real rotating 3D point-sphere (Fibonacci distribution for even dot
+| spacing), rendered every frame — not a static asset. Depth (post-
+| rotation Z) drives each dot's size/brightness so the far hemisphere
+| naturally fades, giving the same "glowing wireframe globe" look as
+| the reference. Rotation speed and color respond to the actual
+| conversation state, and while listening, speed also responds to
+| real microphone amplitude.
+|
+*/
+
+const canvas = document.getElementById('orb-canvas');
+const ctx = canvas.getContext('2d');
+let dpr = window.devicePixelRatio || 1;
+let orbSize = 0;
+
+const SPHERE_POINTS = buildFibonacciSphere(420);
+let rotationY = 0;
+let rotationX = 0.15;
+let lastFrameTime = performance.now();
+let currentAmplitude = 0; // 0..1, set by the visualizer/PCM stream while listening
+
+function buildFibonacciSphere(count) {
+  const points = [];
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+  for (let i = 0; i < count; i++) {
+    const y = 1 - (i / (count - 1)) * 2;
+    const radiusAtY = Math.sqrt(Math.max(0, 1 - y * y));
+    const theta = goldenAngle * i;
+    points.push({
+      x: Math.cos(theta) * radiusAtY,
+      y,
+      z: Math.sin(theta) * radiusAtY,
+    });
+  }
+  return points;
+}
+
+function resizeCanvas() {
+  const rect = orbEl.getBoundingClientRect();
+  orbSize = rect.width;
+  dpr = window.devicePixelRatio || 1;
+  canvas.width = orbSize * dpr;
+  canvas.height = orbSize * dpr;
+  canvas.style.width = `${orbSize}px`;
+  canvas.style.height = `${orbSize}px`;
+}
+window.addEventListener('resize', resizeCanvas);
+
+function stateColor() {
+  // [r, g, b] for the "near side" bright dots, per state.
+  if (currentState === 'speaking') return [216, 180, 254]; // violet
+  if (currentState === 'thinking') return [148, 197, 255]; // soft blue
+  return [125, 211, 252]; // cyan-blue (idle/listening)
+}
+
+function renderSphere(now) {
+  const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+  lastFrameTime = now;
+
+  // Rotation speed per state — reactive to real mic amplitude while listening.
+  let speed = 0.25; // idle: slow ambient spin
+  if (currentState === 'listening') speed = 0.35 + currentAmplitude * 1.8;
+  else if (currentState === 'thinking') speed = 0.6;
+  else if (currentState === 'speaking') speed = 0.9;
+
+  rotationY += speed * dt;
+  rotationX = 0.15 + Math.sin(now / 4000) * 0.05;
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, orbSize, orbSize);
+
+  const cx = orbSize / 2;
+  const cy = orbSize / 2;
+  const R = orbSize * 0.42;
+  const [r, g, b] = stateColor();
+
+  const cosY = Math.cos(rotationY), sinY = Math.sin(rotationY);
+  const cosX = Math.cos(rotationX), sinX = Math.sin(rotationX);
+
+  // Depth-sort so near-side dots draw on top of far-side dots.
+  const projected = SPHERE_POINTS.map((p) => {
+    // Rotate around Y axis, then around X axis.
+    const x1 = p.x * cosY + p.z * sinY;
+    const z1 = -p.x * sinY + p.z * cosY;
+    const y1 = p.y * cosX - z1 * sinX;
+    const z2 = p.y * sinX + z1 * cosX;
+    return { x: x1, y: y1, z: z2 };
+  });
+  projected.sort((a, b2) => a.z - b2.z);
+
+  for (const p of projected) {
+    const depth = (p.z + 1) / 2; // 0 (far) .. 1 (near)
+    const size = 0.6 + depth * 2.1;
+    const alpha = 0.08 + depth * 0.85;
+
+    ctx.beginPath();
+    ctx.arc(cx + p.x * R, cy + p.y * R, size, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    ctx.fill();
+  }
+
+  requestAnimationFrame(renderSphere);
+}
+
+resizeCanvas();
+requestAnimationFrame(renderSphere);
 
 // ---- Core: send a recognized utterance to the backend, speak the reply ----
 async function handleUtterance(text) {
@@ -199,7 +302,7 @@ function showEngineSheet() {
 }
 
 // ---- Orb tap: dispatches to whichever engine is selected ----
-orb.addEventListener('click', () => {
+orbEl.addEventListener('click', () => {
   if (busy) return;
 
   if (getEngine() === 'gemini') {
@@ -218,13 +321,14 @@ orb.addEventListener('click', () => {
 
 /*
 |--------------------------------------------------------------------------
-| REAL AUDIO-REACTIVE WAVEFORM (listening state)
+| REAL AUDIO-REACTIVE INPUT (listening state)
 |--------------------------------------------------------------------------
 |
-| A separate, lightweight mic tap purely for visualization — actual
-| amplitude from the microphone, not a decorative loop. Independent
-| of SpeechRecognition (which doesn't expose raw audio) and of the
-| Gemini engine's own mic capture.
+| Drives both the side waveform bars AND the sphere's rotation speed
+| from actual amplitude — the browser engine taps the mic separately
+| via getUserMedia+AnalyserNode (SpeechRecognition doesn't expose raw
+| audio); the Gemini engine reuses the real PCM chunks it's already
+| streaming out.
 |
 */
 
@@ -234,7 +338,7 @@ let vizAnalyser = null;
 let vizRafId = null;
 
 function startVisualizer() {
-  if (getEngine() === 'gemini') return; // Gemini engine drives bars from its own PCM stream instead.
+  if (getEngine() === 'gemini') return; // Gemini engine drives amplitude from its own PCM stream instead.
 
   navigator.mediaDevices
     .getUserMedia({ audio: true })
@@ -258,6 +362,7 @@ function stopVisualizer() {
   if (vizStream) { vizStream.getTracks().forEach((t) => t.stop()); vizStream = null; }
   if (vizContext) { try { vizContext.close(); } catch (_) {} vizContext = null; }
   vizAnalyser = null;
+  currentAmplitude = 0;
   resetWaveformBars();
 }
 
@@ -272,24 +377,28 @@ function drawWaveform() {
 
   const bars = document.querySelectorAll('.waveform span');
   const step = Math.floor(data.length / bars.length) || 1;
+  let sum = 0;
   bars.forEach((bar, i) => {
     const value = data[i * step] || 0;
+    sum += value;
     const height = 4 + (value / 255) * 60;
     bar.style.height = `${height}px`;
   });
+  currentAmplitude = Math.min(1, sum / (bars.length * 255));
 
   vizRafId = requestAnimationFrame(drawWaveform);
 }
 
-// Drive the same waveform bars from Gemini's real outgoing PCM chunks.
+// Drive the same waveform bars + sphere amplitude from Gemini's real outgoing PCM chunks.
 function updateWaveformFromPCM(int16Array) {
   let sum = 0;
   for (let i = 0; i < int16Array.length; i++) sum += Math.abs(int16Array[i]);
   const avg = sum / int16Array.length; // 0..32768
-  const height = 4 + Math.min(1, avg / 6000) * 60;
+  const level = Math.min(1, avg / 6000);
+  currentAmplitude = level;
+  const height = 4 + level * 60;
 
   document.querySelectorAll('.waveform span').forEach((bar, i) => {
-    // Slight per-bar variance so it doesn't look perfectly uniform.
     const jitter = 1 + ((i % 3) - 1) * 0.15;
     bar.style.height = `${Math.max(4, height * jitter)}px`;
   });
@@ -466,6 +575,7 @@ function stopMicStreaming() {
   if (micSource) { micSource.disconnect(); micSource = null; }
   if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
   if (micAudioContext) { micAudioContext.close(); micAudioContext = null; }
+  currentAmplitude = 0;
   resetWaveformBars();
 }
 
@@ -495,7 +605,7 @@ function getPlaybackContext() {
 }
 
 function playAudioChunk(base64Data, mimeType) {
-  const ctx = getPlaybackContext();
+  const ctx2 = getPlaybackContext();
   const rateMatch = /rate=(\d+)/.exec(mimeType || '');
   const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
 
@@ -504,15 +614,15 @@ function playAudioChunk(base64Data, mimeType) {
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   const int16 = new Int16Array(bytes.buffer);
 
-  const audioBuffer = ctx.createBuffer(1, int16.length, sampleRate);
+  const audioBuffer = ctx2.createBuffer(1, int16.length, sampleRate);
   const channel = audioBuffer.getChannelData(0);
   for (let i = 0; i < int16.length; i++) channel[i] = int16[i] / 32768;
 
-  const source = ctx.createBufferSource();
+  const source = ctx2.createBufferSource();
   source.buffer = audioBuffer;
-  source.connect(ctx.destination);
+  source.connect(ctx2.destination);
 
-  const now = ctx.currentTime;
+  const now = ctx2.currentTime;
   const startAt = Math.max(now, playbackQueueTime);
   source.start(startAt);
   playbackQueueTime = startAt + audioBuffer.duration;
