@@ -324,7 +324,7 @@ function startGeminiLive() {
   geminiSocket.addEventListener('open', () => {
     const setupMessage = {
       setup: {
-        model: 'models/gemini-2.0-flash-live-preview-04-09',
+        model: 'models/gemini-3.1-flash-live-preview',
         generationConfig: { responseModalities: ['AUDIO'] },
       },
     };
