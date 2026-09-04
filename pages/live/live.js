@@ -1,120 +1,91 @@
 // JOHNNY TEC OS — pages/live/live.js
 //
-// Two voice engines:
-//   - "browser": the original SpeechRecognition + SpeechSynthesis
-//     implementation. Always available, always the safe fallback.
-//   - "gemini": streams raw mic audio to our backend's /ws/live
-//     relay, which forwards it to Gemini's Live API (beta) and
-//     streams audio replies back.
+// Voice-only Live Conversation. No transcript, no typing — tap the
+// orb to talk, the AI replies out loud. Two engines, switchable from
+// the settings icon:
+//   - "browser": SpeechRecognition + SpeechSynthesis (default, always
+//     available).
+//   - "gemini": streams mic audio to our /ws/live relay -> Gemini
+//     Live API (beta) and plays its audio replies back.
 //
-// The Gemini Live wire protocol is assembled from Google's public
-// docs, which are for a preview API and can be incomplete or drift.
-// Every failure path here (connect timeout, close-before-setup,
-// mic error) falls back to the browser engine automatically instead
-// of leaving the person stuck, and every failure is shown as a real
-// message in the transcript so it can be debugged from what
-// actually happened, not guessed.
+// Any failure (Gemini connect timeout, mic error, expired session)
+// shows as a real toast message and — for Gemini — automatically
+// falls back to the browser engine rather than leaving a dead orb.
 
 if (!AuthService.isAuthenticated()) {
   window.location.href = '../../auth/login/login.html';
 }
 
 const orb = document.getElementById('live-orb');
+const tickRing = document.getElementById('tick-ring');
 const waveLeft = document.getElementById('wave-left');
 const waveRight = document.getElementById('wave-right');
 const statusTitle = document.getElementById('status-title');
 const statusSubtitle = document.getElementById('status-subtitle');
-const interimText = document.getElementById('interim-text');
-const transcript = document.getElementById('live-transcript');
-const endBtn = document.getElementById('end-btn');
-const micBtn = document.getElementById('mic-btn');
-const micLabel = document.getElementById('mic-label');
-const typeToggleBtn = document.getElementById('type-toggle-btn');
-const typeBar = document.getElementById('type-bar');
-const typeInput = document.getElementById('type-input');
-const typeSend = document.getElementById('type-send');
 const backBtn = document.getElementById('back-btn');
 const voiceSettingsBtn = document.getElementById('voice-settings-btn');
 
 let conversationId = null;
 let recognition = null;
 let listening = false;
-let busy = false; // true while thinking or speaking — mic is locked out
+let busy = false; // true while thinking or speaking — orb tap is ignored
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
 const speechSupported = !!SpeechRecognitionAPI;
 const ttsSupported = 'speechSynthesis' in window;
 
+// Build the rotating tick-mark ring used in the "speaking" state.
+(function buildTickRing() {
+  const count = 28;
+  for (let i = 0; i < count; i++) {
+    const tick = document.createElement('span');
+    tick.style.transform = `rotate(${(360 / count) * i}deg) translateY(-60px)`;
+    tick.style.animationDelay = `${(i % 6) * 0.1}s`;
+    tickRing.appendChild(tick);
+  }
+})();
+
 backBtn.addEventListener('click', leaveLiveConversation);
-endBtn.addEventListener('click', leaveLiveConversation);
 
 function leaveLiveConversation() {
   if (recognition) recognition.abort();
   if (ttsSupported) speechSynthesis.cancel();
   stopGeminiLive();
+  stopVisualizer();
   window.location.href = '../../index.html';
+}
+
+// ---- Toast (shared component from global.css) ----
+let toastTimer = null;
+function showToast(message) {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.classList.add('is-visible');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('is-visible'), 2400);
 }
 
 // ---- Orb / status state ----
 function setState(state) {
-  orb.className = `orb live-orb live-orb--${state}`;
+  orb.className = `big-orb big-orb--${state}`;
   waveLeft.classList.toggle('is-active', state === 'listening');
   waveRight.classList.toggle('is-active', state === 'listening');
 
   const copy = {
-    idle: ['Tap the mic to start', 'Speak naturally, Johnny is here to help.'],
-    listening: ["Listening...", 'Speak now — tap the mic again to stop.'],
-    thinking: ['Johnny is thinking...', 'One moment.'],
-    speaking: ['Speaking...', 'Tap the mic to interrupt and reply.'],
+    idle: ['Ready and waiting for you...', 'Tap the orb to start talking.'],
+    listening: ['I\u2019m listening...', 'Speak naturally.'],
+    thinking: ['One moment...', 'Johnny is thinking.'],
+    speaking: ['Talking', 'Johnny is speaking...'],
   }[state];
 
   statusTitle.textContent = copy[0];
   statusSubtitle.textContent = copy[1];
-  endBtn.style.display = state === 'idle' ? 'none' : 'flex';
 }
 
-// ---- Transcript rendering (reuses .msg styles from chat.css) ----
-function clearEmptyState() {
-  const empty = transcript.querySelector('.live-empty');
-  if (empty) empty.remove();
-}
-
-function appendUserMessage(text) {
-  clearEmptyState();
-  const el = document.createElement('div');
-  el.className = 'msg msg--user';
-  el.innerHTML = `<div class="msg__bubble"></div>`;
-  el.querySelector('.msg__bubble').textContent = text;
-  transcript.appendChild(el);
-  transcript.scrollTop = transcript.scrollHeight;
-}
-
-function appendAIMessage(text) {
-  clearEmptyState();
-  const el = document.createElement('div');
-  el.className = 'msg msg--ai';
-  el.innerHTML = `<div class="orb msg__avatar"><span class="eye"></span><span class="eye"></span></div><div class="msg__bubble"></div>`;
-  el.querySelector('.msg__bubble').textContent = text;
-  transcript.appendChild(el);
-  transcript.scrollTop = transcript.scrollHeight;
-}
-
-function appendErrorMessage(text) {
-  clearEmptyState();
-  const el = document.createElement('div');
-  el.className = 'msg msg--ai msg--error';
-  el.innerHTML = `<div class="msg__bubble"></div>`;
-  el.querySelector('.msg__bubble').textContent = text;
-  transcript.appendChild(el);
-  transcript.scrollTop = transcript.scrollHeight;
-}
-
-// ---- Core: send a typed/browser-recognized utterance to the backend ----
+// ---- Core: send a recognized utterance to the backend, speak the reply ----
 async function handleUtterance(text) {
   if (!text.trim() || busy) return;
   stopListening();
-  interimText.textContent = '';
-  appendUserMessage(text);
   setState('thinking');
   busy = true;
 
@@ -124,18 +95,17 @@ async function handleUtterance(text) {
       conversationId = conversation.id;
     }
     const data = await ChatService.sendMessage(conversationId, text);
-    appendAIMessage(data.message.content);
     speak(data.message.content);
   } catch (err) {
     if (err.status === 401) {
       AuthService.clearSession();
-      appendErrorMessage('Your session expired. Redirecting to log in...');
+      showToast('Session expired \u2014 redirecting to log in...');
       setState('idle');
       busy = false;
       setTimeout(() => { window.location.href = '../../auth/login/login.html'; }, 1200);
       return;
     }
-    appendErrorMessage(err.message || 'Something went wrong.');
+    showToast(err.message || 'Something went wrong.');
     busy = false;
     setState('idle');
   }
@@ -149,65 +119,51 @@ function speak(text) {
   }
   speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
-  utter.onend = () => {
-    busy = false;
-    setState('idle');
-  };
-  utter.onerror = () => {
-    busy = false;
-    setState('idle');
-  };
+  utter.onend = () => { busy = false; setState('idle'); };
+  utter.onerror = () => { busy = false; setState('idle'); };
   setState('speaking');
   speechSynthesis.speak(utter);
 }
 
-// ---- Browser speech recognition (unchanged from before) ----
+// ---- Browser speech recognition ----
 function startListening() {
   if (!speechSupported || busy) return;
 
   recognition = new SpeechRecognitionAPI();
   recognition.lang = 'en-US';
   recognition.continuous = false;
-  recognition.interimResults = true;
+  recognition.interimResults = false;
 
   recognition.onresult = (e) => {
     let finalText = '';
-    let interim = '';
     for (let i = e.resultIndex; i < e.results.length; i++) {
-      const chunk = e.results[i][0].transcript;
-      if (e.results[i].isFinal) finalText += chunk;
-      else interim += chunk;
+      if (e.results[i].isFinal) finalText += e.results[i][0].transcript;
     }
-    interimText.textContent = interim;
     if (finalText) handleUtterance(finalText);
   };
 
   recognition.onerror = () => {
     listening = false;
-    micBtn.classList.remove('is-active');
-    micLabel.textContent = 'Tap to speak';
+    stopVisualizer();
     if (!busy) setState('idle');
   };
 
   recognition.onend = () => {
     listening = false;
-    micBtn.classList.remove('is-active');
-    micLabel.textContent = 'Tap to speak';
+    stopVisualizer();
     if (!busy) setState('idle');
   };
 
   recognition.start();
   listening = true;
-  micBtn.classList.add('is-active');
-  micLabel.textContent = 'Listening...';
   setState('listening');
+  startVisualizer();
 }
 
 function stopListening() {
   if (recognition && listening) recognition.stop();
   listening = false;
-  micBtn.classList.remove('is-active');
-  micLabel.textContent = 'Tap to speak';
+  stopVisualizer();
 }
 
 // ---- Voice engine selection ----
@@ -242,45 +198,107 @@ function showEngineSheet() {
   overlay.querySelector('#engine-cancel').onclick = () => overlay.remove();
 }
 
-// ---- Mic button: dispatches to whichever engine is selected ----
-micBtn.addEventListener('click', () => {
+// ---- Orb tap: dispatches to whichever engine is selected ----
+orb.addEventListener('click', () => {
+  if (busy) return;
+
   if (getEngine() === 'gemini') {
     if (geminiActive) stopGeminiLive();
     else startGeminiLive();
     return;
   }
-  if (!speechSupported) return;
+
+  if (!speechSupported) {
+    showToast('Voice input isn\u2019t supported in this browser.');
+    return;
+  }
   if (listening) stopListening();
   else startListening();
 });
 
-// ---- Typing fallback (works with either engine) ----
-typeToggleBtn.addEventListener('click', () => {
-  typeBar.classList.toggle('is-visible');
-  if (typeBar.classList.contains('is-visible')) typeInput.focus();
-});
+/*
+|--------------------------------------------------------------------------
+| REAL AUDIO-REACTIVE WAVEFORM (listening state)
+|--------------------------------------------------------------------------
+|
+| A separate, lightweight mic tap purely for visualization — actual
+| amplitude from the microphone, not a decorative loop. Independent
+| of SpeechRecognition (which doesn't expose raw audio) and of the
+| Gemini engine's own mic capture.
+|
+*/
 
-typeSend.addEventListener('click', submitTyped);
-typeInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); submitTyped(); }
-});
+let vizStream = null;
+let vizContext = null;
+let vizAnalyser = null;
+let vizRafId = null;
 
-function submitTyped() {
-  const text = typeInput.value.trim();
-  if (!text) return;
-  typeInput.value = '';
-  handleUtterance(text);
+function startVisualizer() {
+  if (getEngine() === 'gemini') return; // Gemini engine drives bars from its own PCM stream instead.
+
+  navigator.mediaDevices
+    .getUserMedia({ audio: true })
+    .then((stream) => {
+      vizStream = stream;
+      vizContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = vizContext.createMediaStreamSource(stream);
+      vizAnalyser = vizContext.createAnalyser();
+      vizAnalyser.fftSize = 64;
+      source.connect(vizAnalyser);
+      drawWaveform();
+    })
+    .catch(() => {
+      // Visualization is a bonus, not required — recognition still works without it.
+    });
+}
+
+function stopVisualizer() {
+  if (vizRafId) cancelAnimationFrame(vizRafId);
+  vizRafId = null;
+  if (vizStream) { vizStream.getTracks().forEach((t) => t.stop()); vizStream = null; }
+  if (vizContext) { try { vizContext.close(); } catch (_) {} vizContext = null; }
+  vizAnalyser = null;
+  resetWaveformBars();
+}
+
+function resetWaveformBars() {
+  document.querySelectorAll('.waveform span').forEach((bar) => { bar.style.height = '4px'; });
+}
+
+function drawWaveform() {
+  if (!vizAnalyser) return;
+  const data = new Uint8Array(vizAnalyser.frequencyBinCount);
+  vizAnalyser.getByteFrequencyData(data);
+
+  const bars = document.querySelectorAll('.waveform span');
+  const step = Math.floor(data.length / bars.length) || 1;
+  bars.forEach((bar, i) => {
+    const value = data[i * step] || 0;
+    const height = 4 + (value / 255) * 60;
+    bar.style.height = `${height}px`;
+  });
+
+  vizRafId = requestAnimationFrame(drawWaveform);
+}
+
+// Drive the same waveform bars from Gemini's real outgoing PCM chunks.
+function updateWaveformFromPCM(int16Array) {
+  let sum = 0;
+  for (let i = 0; i < int16Array.length; i++) sum += Math.abs(int16Array[i]);
+  const avg = sum / int16Array.length; // 0..32768
+  const height = 4 + Math.min(1, avg / 6000) * 60;
+
+  document.querySelectorAll('.waveform span').forEach((bar, i) => {
+    // Slight per-bar variance so it doesn't look perfectly uniform.
+    const jitter = 1 + ((i % 3) - 1) * 0.15;
+    bar.style.height = `${Math.max(4, height * jitter)}px`;
+  });
 }
 
 /*
 |--------------------------------------------------------------------------
 | GEMINI LIVE (beta)
 |--------------------------------------------------------------------------
-|
-| Continuous mic streaming while a session is active — this is a
-| different model than browser SpeechRecognition's tap-per-utterance
-| flow, since Gemini Live has its own voice activity detection.
-|
 */
 
 let geminiSocket = null;
@@ -305,15 +323,15 @@ function startGeminiLive() {
   const url = wsUrlFromApiBase(`/ws/live?token=${encodeURIComponent(token)}`);
 
   geminiActive = true;
-  micBtn.classList.add('is-active');
-  micLabel.textContent = 'Connecting...';
   setState('listening');
+  waveLeft.classList.add('is-active');
+  waveRight.classList.add('is-active');
 
   let setupConfirmed = false;
 
   const connectTimeout = setTimeout(() => {
     if (!setupConfirmed) {
-      appendErrorMessage('Gemini Live didn\u2019t respond in time \u2014 falling back to browser voice.');
+      showToast('Gemini Live didn\u2019t respond in time \u2014 falling back to browser voice.');
       stopGeminiLive();
       startListening();
     }
@@ -343,7 +361,6 @@ function startGeminiLive() {
     if (payload.setupComplete) {
       setupConfirmed = true;
       clearTimeout(connectTimeout);
-      micLabel.textContent = 'Listening...';
       startMicStreaming();
       return;
     }
@@ -355,17 +372,11 @@ function startGeminiLive() {
           setState('speaking');
           playAudioChunk(part.inlineData.data, part.inlineData.mimeType);
         }
-        if (part.text) {
-          appendAIMessage(part.text);
-        }
       }
     }
 
-    if (payload.serverContent && payload.serverContent.turnComplete) {
-      if (geminiActive) {
-        setState('listening');
-        micLabel.textContent = 'Listening...';
-      }
+    if (payload.serverContent && payload.serverContent.turnComplete && geminiActive) {
+      setState('listening');
     }
 
     if (payload.serverContent && payload.serverContent.interrupted) {
@@ -378,46 +389,44 @@ function startGeminiLive() {
     const wasConfirmed = setupConfirmed;
     stopMicStreaming();
     geminiActive = false;
-    micBtn.classList.remove('is-active');
+    waveLeft.classList.remove('is-active');
+    waveRight.classList.remove('is-active');
 
     if (!wasConfirmed) {
-      appendErrorMessage(
+      showToast(
         `Gemini Live couldn\u2019t connect (code ${event.code}${event.reason ? ': ' + event.reason : ''}) \u2014 falling back to browser voice.`
       );
       if (!busy) startListening();
       return;
     }
 
-    micLabel.textContent = 'Tap to speak';
     if (!busy) setState('idle');
   });
 
   geminiSocket.addEventListener('error', () => {
-    // The 'close' event fires right after this and handles cleanup/fallback.
+    // 'close' fires next and handles cleanup/fallback.
   });
 }
 
 function stopGeminiLive() {
   if (!geminiActive && !geminiSocket) return;
   geminiActive = false;
-  micBtn.classList.remove('is-active');
-  micLabel.textContent = 'Tap to speak';
+  waveLeft.classList.remove('is-active');
+  waveRight.classList.remove('is-active');
   stopMicStreaming();
   stopPlaybackQueue();
   if (geminiSocket) {
-    try { geminiSocket.close(); } catch (_) { /* already closed */ }
+    try { geminiSocket.close(); } catch (_) {}
     geminiSocket = null;
   }
   if (!busy) setState('idle');
 }
 
-// ---- Mic capture: Float32 -> PCM16 @16kHz -> base64 -> relay ----
 function startMicStreaming() {
   navigator.mediaDevices
     .getUserMedia({ audio: true })
     .then((stream) => {
       if (!geminiActive) {
-        // Session was stopped while the permission prompt was open.
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
@@ -431,6 +440,7 @@ function startMicStreaming() {
         if (!geminiActive || !geminiSocket || geminiSocket.readyState !== WebSocket.OPEN) return;
         const input = e.inputBuffer.getChannelData(0);
         const pcm16 = floatTo16BitPCM(input);
+        updateWaveformFromPCM(pcm16);
         const base64 = arrayBufferToBase64(pcm16.buffer);
         geminiSocket.send(
           JSON.stringify({
@@ -445,7 +455,7 @@ function startMicStreaming() {
       micProcessor.connect(micAudioContext.destination);
     })
     .catch((err) => {
-      appendErrorMessage('Microphone access failed: ' + err.message + ' \u2014 falling back to browser voice.');
+      showToast('Microphone access failed \u2014 falling back to browser voice.');
       stopGeminiLive();
       startListening();
     });
@@ -456,6 +466,7 @@ function stopMicStreaming() {
   if (micSource) { micSource.disconnect(); micSource = null; }
   if (micStream) { micStream.getTracks().forEach((t) => t.stop()); micStream = null; }
   if (micAudioContext) { micAudioContext.close(); micAudioContext = null; }
+  resetWaveformBars();
 }
 
 function floatTo16BitPCM(float32Array) {
@@ -475,7 +486,6 @@ function arrayBufferToBase64(buffer) {
   return btoa(binary);
 }
 
-// ---- Playback of Gemini's streamed audio replies ----
 function getPlaybackContext() {
   if (!playbackContext) {
     playbackContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -510,7 +520,7 @@ function playAudioChunk(base64Data, mimeType) {
 
 function stopPlaybackQueue() {
   if (playbackContext) {
-    try { playbackContext.close(); } catch (_) { /* already closed */ }
+    try { playbackContext.close(); } catch (_) {}
     playbackContext = null;
   }
   playbackQueueTime = 0;
@@ -518,10 +528,6 @@ function stopPlaybackQueue() {
 
 // ---- Startup ----
 if (!speechSupported && getEngine() === 'browser') {
-  micLabel.textContent = 'Not supported';
-  statusTitle.textContent = 'Voice input isn\u2019t supported in this browser';
-  statusSubtitle.textContent = 'Use Type Instead below, or switch to Gemini Live in Voice Settings.';
-  typeBar.classList.add('is-visible');
-} else {
-  setState('idle');
+  showToast('Voice input isn\u2019t supported in this browser. Try Gemini Live in settings.');
 }
+setState('idle');
