@@ -1,6 +1,6 @@
 html, body { overflow: hidden; }
 
-/* ---- Minimal top bar (not the shared fixed .top-bar — this page has no scroll) ---- */
+/* ---- Minimal top bar (this page has no scroll, so no fixed-header offset needed) ---- */
 .live-topbar {
   display: flex;
   align-items: center;
@@ -57,15 +57,15 @@ html, body { overflow: hidden; }
   border-radius: 2px;
   background: var(--accent-blue);
   height: 4px;
-  transition: height 0.08s ease-out;
+  transition: height 0.08s ease-out, background 0.3s;
 }
 .waveform--left { justify-content: flex-end; }
 
-/* ---- The big cinematic orb ---- */
+/* ---- The big cinematic orb: canvas-rendered dot sphere + CSS glow ring ---- */
 .big-orb {
   position: relative;
-  width: min(62vw, 260px);
-  height: min(62vw, 260px);
+  width: min(64vw, 270px);
+  height: min(64vw, 270px);
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -73,152 +73,51 @@ html, body { overflow: hidden; }
   cursor: pointer;
 }
 
-.big-orb__halo {
+.big-orb__glow {
   position: absolute;
-  inset: -20%;
+  inset: -14%;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(79, 142, 247, 0.28) 0%, rgba(124, 111, 240, 0.12) 45%, transparent 72%);
-  filter: blur(6px);
-  animation: halo-breathe 4s ease-in-out infinite;
+  background: radial-gradient(circle, rgba(79, 142, 247, 0.32) 0%, rgba(124, 111, 240, 0.14) 45%, transparent 72%);
+  filter: blur(4px);
+  animation: glow-breathe 4s ease-in-out infinite;
+  transition: background 0.4s;
+  z-index: 0;
 }
-
-.big-orb__ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 1.5px solid transparent;
-  background: linear-gradient(#05050a, #05050a) padding-box, var(--gradient-orb-ring) border-box;
-  box-shadow: 0 0 30px 6px rgba(79, 142, 247, 0.35);
-  animation: ring-pulse 3.2s ease-in-out infinite;
-}
-
-.big-orb__core {
-  position: relative;
-  z-index: 3;
-  width: 22%;
-  height: 22%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6%;
-}
-.big-orb__core .eye {
-  width: 32%;
-  height: 32%;
-  border-radius: 50%;
-  background: var(--accent-cyan);
-  box-shadow: 0 0 10px var(--accent-cyan);
-  animation: eye-idle 6s ease-in-out infinite, blink-ambient 5.5s ease-in-out infinite;
-}
-
-/* Ambient idle particles drifting around the orb */
-.big-orb__particles { position: absolute; inset: 0; }
-.big-orb__particles span {
-  position: absolute;
-  width: 4px; height: 4px;
-  border-radius: 50%;
-  background: var(--accent-cyan);
-  box-shadow: 0 0 6px var(--accent-cyan);
-  opacity: 0;
-  animation: particle-drift 7s ease-in-out infinite;
-}
-.big-orb__particles span:nth-child(1) { top: 8%;  left: 20%; animation-delay: 0s; }
-.big-orb__particles span:nth-child(2) { top: 75%; left: 12%; animation-delay: 1.2s; }
-.big-orb__particles span:nth-child(3) { top: 15%; left: 82%; animation-delay: 2.4s; }
-.big-orb__particles span:nth-child(4) { top: 85%; left: 78%; animation-delay: 3.6s; }
-.big-orb__particles span:nth-child(5) { top: 45%; left: 4%;  animation-delay: 4.8s; }
-.big-orb__particles span:nth-child(6) { top: 40%; left: 92%; animation-delay: 6s; }
-
-/* Rotating tick ring — only visible while speaking */
-.big-orb__tickring {
-  position: absolute;
-  inset: -8%;
-  border-radius: 50%;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.big-orb__tickring span {
-  position: absolute;
-  top: 50%; left: 50%;
-  width: 2px;
-  height: 8px;
-  background: var(--accent-purple);
-  border-radius: 1px;
-  transform-origin: center 60px;
-  opacity: 0.7;
-}
-
-@keyframes halo-breathe {
+@keyframes glow-breathe {
   0%, 100% { transform: scale(1); opacity: 0.75; }
-  50% { transform: scale(1.12); opacity: 1; }
-}
-@keyframes ring-pulse {
-  0%, 100% { box-shadow: 0 0 24px 4px rgba(124, 111, 240, 0.3); }
-  50% { box-shadow: 0 0 38px 10px rgba(79, 142, 247, 0.5); }
-}
-@keyframes eye-idle {
-  0%, 100% { transform: translate(0, 0); }
-  25% { transform: translate(2px, -1px); }
-  50% { transform: translate(-2px, 1px); }
-  75% { transform: translate(1px, 2px); }
-}
-@keyframes blink-ambient {
-  0%, 94%, 100% { transform: scaleY(1); }
-  97% { transform: scaleY(0.15); }
-}
-@keyframes particle-drift {
-  0%, 100% { opacity: 0; transform: translate(0, 0) scale(0.6); }
-  15%, 85% { opacity: 0.8; }
-  50% { transform: translate(6px, -14px) scale(1); }
+  50% { transform: scale(1.1); opacity: 1; }
 }
 
-/* ---- LISTENING state ---- */
-.big-orb--listening .big-orb__halo { animation-duration: 1.6s; }
-.big-orb--listening .big-orb__ring { animation-duration: 1s; }
-
-/* ---- THINKING state ---- */
-.big-orb--thinking .big-orb__core .eye {
-  animation: eye-think 1.1s linear infinite;
-}
-@keyframes eye-think {
-  0% { transform: translate(0, 0); }
-  25% { transform: translate(4px, -3px); }
-  50% { transform: translate(0, -5px); }
-  75% { transform: translate(-4px, -3px); }
-  100% { transform: translate(0, 0); }
+#orb-canvas {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 0 1.5px rgba(148, 163, 255, 0.5),
+    0 0 26px 4px rgba(79, 142, 247, 0.4);
+  transition: box-shadow 0.4s;
 }
 
-/* ---- TALKING / speaking state: shifts palette to violet, spins the tick ring ---- */
-.big-orb--speaking .big-orb__halo {
-  background: radial-gradient(circle, rgba(167, 139, 250, 0.32) 0%, rgba(124, 111, 240, 0.14) 45%, transparent 72%);
+/* ---- State-driven glow color/intensity (rotation speed + dot color handled in JS) ---- */
+.big-orb--listening .big-orb__glow { animation-duration: 1.6s; }
+.big-orb--listening #orb-canvas {
+  box-shadow:
+    inset 0 0 0 1.5px rgba(148, 163, 255, 0.7),
+    0 0 34px 8px rgba(79, 142, 247, 0.55);
+}
+
+.big-orb--thinking .big-orb__glow { animation-duration: 2.2s; }
+
+.big-orb--speaking .big-orb__glow {
+  background: radial-gradient(circle, rgba(192, 132, 252, 0.36) 0%, rgba(124, 111, 240, 0.16) 45%, transparent 72%);
   animation-duration: 0.9s;
 }
-.big-orb--speaking .big-orb__ring {
-  background: linear-gradient(#05050a, #05050a) padding-box, linear-gradient(135deg, #c084fc, #a78bfa) border-box;
-  animation-duration: 0.6s;
-}
-.big-orb--speaking .big-orb__core .eye {
-  background: #c4b5fd;
-  box-shadow: 0 0 10px #c4b5fd;
-  animation: eye-speak 0.4s ease-in-out infinite;
-}
-@keyframes eye-speak {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.3); }
-}
-.big-orb--speaking .big-orb__tickring {
-  opacity: 1;
-  animation: tick-rotate 6s linear infinite;
-}
-.big-orb__tickring span:nth-child(n) { animation: tick-pulse 1.2s ease-in-out infinite; }
-
-@keyframes tick-rotate {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-@keyframes tick-pulse {
-  0%, 100% { opacity: 0.4; transform: scaleY(1); }
-  50% { opacity: 1; transform: scaleY(1.6); }
+.big-orb--speaking #orb-canvas {
+  box-shadow:
+    inset 0 0 0 1.5px rgba(216, 180, 254, 0.75),
+    0 0 34px 8px rgba(192, 132, 252, 0.55);
 }
 
 /* ---- Status text ---- */
