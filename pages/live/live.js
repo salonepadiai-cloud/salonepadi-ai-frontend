@@ -1,4 +1,15 @@
 // JOHNNY TEC OS — pages/live/live.js
+
+window.addEventListener('error', (e) => {
+  const toast = document.getElementById('toast');
+  if (toast) {
+    toast.textContent = `JS Error: ${e.message} (line ${e.lineno})`;
+    toast.classList.add('is-visible');
+    toast.style.pointerEvents = 'auto';
+  }
+  console.error('Live page error:', e.error || e.message);
+});
+
 //
 // Voice-only Live Conversation. No transcript, no typing — tap the
 // orb to talk, the AI replies out loud. The orb itself is a real
@@ -260,12 +271,16 @@ function startListening() {
   recognition.start();
   listening = true;
   setState('listening');
+  waveLeft.classList.add('waveform--decorative');
+  waveRight.classList.add('waveform--decorative');
   startVisualizer();
 }
 
 function stopListening() {
   if (recognition && listening) recognition.stop();
   listening = false;
+  waveLeft.classList.remove('waveform--decorative');
+  waveRight.classList.remove('waveform--decorative');
   stopVisualizer();
 }
 
@@ -321,47 +336,29 @@ orbEl.addEventListener('click', () => {
 
 /*
 |--------------------------------------------------------------------------
-| REAL AUDIO-REACTIVE INPUT (listening state)
+| WAVEFORM VISUALIZATION (listening state)
 |--------------------------------------------------------------------------
 |
-| Drives both the side waveform bars AND the sphere's rotation speed
-| from actual amplitude — the browser engine taps the mic separately
-| via getUserMedia+AnalyserNode (SpeechRecognition doesn't expose raw
-| audio); the Gemini engine reuses the real PCM chunks it's already
-| streaming out.
+| IMPORTANT: for the browser engine, this does NOT open its own
+| microphone stream. An earlier version did (via getUserMedia, to
+| drive real amplitude), running at the same time SpeechRecognition
+| was also trying to capture the mic internally — two simultaneous
+| mic consumers, which silently broke SpeechRecognition on-device
+| (it never fired onresult/onend, so the orb stayed stuck on
+| "Listening..." forever). For browser voice, the waveform bars are
+| now a decorative CSS animation only — not claimed to be reactive.
+|
+| The Gemini engine still gets REAL audio-reactive bars, because
+| that reuses the PCM stream it already needs for functionality —
+| not a second, redundant mic consumer.
 |
 */
 
-let vizStream = null;
-let vizContext = null;
-let vizAnalyser = null;
-let vizRafId = null;
-
 function startVisualizer() {
-  if (getEngine() === 'gemini') return; // Gemini engine drives amplitude from its own PCM stream instead.
-
-  navigator.mediaDevices
-    .getUserMedia({ audio: true })
-    .then((stream) => {
-      vizStream = stream;
-      vizContext = new (window.AudioContext || window.webkitAudioContext)();
-      const source = vizContext.createMediaStreamSource(stream);
-      vizAnalyser = vizContext.createAnalyser();
-      vizAnalyser.fftSize = 64;
-      source.connect(vizAnalyser);
-      drawWaveform();
-    })
-    .catch(() => {
-      // Visualization is a bonus, not required — recognition still works without it.
-    });
+  // Browser engine: decorative only (see note above — no mic access here).
 }
 
 function stopVisualizer() {
-  if (vizRafId) cancelAnimationFrame(vizRafId);
-  vizRafId = null;
-  if (vizStream) { vizStream.getTracks().forEach((t) => t.stop()); vizStream = null; }
-  if (vizContext) { try { vizContext.close(); } catch (_) {} vizContext = null; }
-  vizAnalyser = null;
   currentAmplitude = 0;
   resetWaveformBars();
 }
@@ -370,26 +367,7 @@ function resetWaveformBars() {
   document.querySelectorAll('.waveform span').forEach((bar) => { bar.style.height = '4px'; });
 }
 
-function drawWaveform() {
-  if (!vizAnalyser) return;
-  const data = new Uint8Array(vizAnalyser.frequencyBinCount);
-  vizAnalyser.getByteFrequencyData(data);
-
-  const bars = document.querySelectorAll('.waveform span');
-  const step = Math.floor(data.length / bars.length) || 1;
-  let sum = 0;
-  bars.forEach((bar, i) => {
-    const value = data[i * step] || 0;
-    sum += value;
-    const height = 4 + (value / 255) * 60;
-    bar.style.height = `${height}px`;
-  });
-  currentAmplitude = Math.min(1, sum / (bars.length * 255));
-
-  vizRafId = requestAnimationFrame(drawWaveform);
-}
-
-// Drive the same waveform bars + sphere amplitude from Gemini's real outgoing PCM chunks.
+// Drive the waveform bars + sphere amplitude from Gemini's real outgoing PCM chunks.
 function updateWaveformFromPCM(int16Array) {
   let sum = 0;
   for (let i = 0; i < int16Array.length; i++) sum += Math.abs(int16Array[i]);
