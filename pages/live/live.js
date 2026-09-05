@@ -39,7 +39,8 @@ const voiceSettingsBtn = document.getElementById('voice-settings-btn');
 let conversationId = null;
 let recognition = null;
 let listening = false;
-let busy = false; // true while thinking or speaking — orb tap is ignored
+let busy = false; // true while thinking or speaking
+let sessionActive = false; // true once the person has tapped to start a hands-free session
 let currentState = 'idle';
 
 const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -49,6 +50,7 @@ const ttsSupported = 'speechSynthesis' in window;
 backBtn.addEventListener('click', leaveLiveConversation);
 
 function leaveLiveConversation() {
+  sessionActive = false;
   if (recognition) recognition.abort();
   if (ttsSupported) speechSynthesis.cancel();
   stopGeminiLive();
@@ -198,7 +200,7 @@ requestAnimationFrame(renderSphere);
 
 // ---- Core: send a recognized utterance to the backend, speak the reply ----
 async function handleUtterance(text) {
-  if (!text.trim() || busy) return;
+  if (!text.trim()) return;
   stopListening();
   setState('thinking');
   busy = true;
@@ -216,11 +218,13 @@ async function handleUtterance(text) {
       showToast('Session expired \u2014 redirecting to log in...');
       setState('idle');
       busy = false;
+      sessionActive = false;
       setTimeout(() => { window.location.href = '../../auth/login/login.html'; }, 1200);
       return;
     }
     showToast(err.message || 'Something went wrong.');
     busy = false;
+    sessionActive = false;
     setState('idle');
   }
 }
@@ -233,7 +237,14 @@ function speak(text) {
   }
   speechSynthesis.cancel();
   const utter = new SpeechSynthesisUtterance(text);
-  utter.onend = () => { busy = false; setState('idle'); };
+  utter.onend = () => {
+    busy = false;
+    if (sessionActive && getEngine() === 'browser') {
+      startListening(); // "always listening": next turn starts automatically
+    } else {
+      setState('idle');
+    }
+  };
   utter.onerror = () => { busy = false; setState('idle'); };
   setState('speaking');
   speechSynthesis.speak(utter);
@@ -256,16 +267,31 @@ function startListening() {
     if (finalText) handleUtterance(finalText);
   };
 
-  recognition.onerror = () => {
+  recognition.onerror = (e) => {
     listening = false;
     stopVisualizer();
-    if (!busy) setState('idle');
+    const fatal = e.error === 'not-allowed' || e.error === 'audio-capture' || e.error === 'service-not-allowed';
+    if (fatal) {
+      sessionActive = false;
+      showToast('Microphone access was blocked.');
+      setState('idle');
+      return;
+    }
+    if (sessionActive && !busy) {
+      startListening(); // keep the hands-free session alive through transient hiccups (e.g. no-speech)
+    } else if (!busy) {
+      setState('idle');
+    }
   };
 
   recognition.onend = () => {
     listening = false;
     stopVisualizer();
-    if (!busy) setState('idle');
+    if (sessionActive && !busy) {
+      startListening(); // silence timeout — restart automatically rather than going idle
+    } else if (!busy) {
+      setState('idle');
+    }
   };
 
   recognition.start();
@@ -316,13 +342,33 @@ function showEngineSheet() {
   overlay.querySelector('#engine-cancel').onclick = () => overlay.remove();
 }
 
-// ---- Orb tap: dispatches to whichever engine is selected ----
+// ---- Orb tap: starts/ends a hands-free session; supports barge-in ----
 orbEl.addEventListener('click', () => {
-  if (busy) return;
+  const engine = getEngine();
 
-  if (getEngine() === 'gemini') {
-    if (geminiActive) stopGeminiLive();
-    else startGeminiLive();
+  // Tap while Johnny is talking = barge-in: interrupt and listen again right away.
+  if (currentState === 'speaking') {
+    if (ttsSupported) speechSynthesis.cancel();
+    stopPlaybackQueue();
+    busy = false;
+    if (engine === 'gemini' && geminiActive) {
+      setState('listening'); // Gemini's mic stream is already open continuously.
+    } else if (engine === 'browser') {
+      startListening();
+    }
+    return;
+  }
+
+  if (currentState === 'thinking') return; // let the in-flight request finish
+
+  if (engine === 'gemini') {
+    if (geminiActive) {
+      sessionActive = false;
+      stopGeminiLive();
+    } else {
+      sessionActive = true;
+      startGeminiLive();
+    }
     return;
   }
 
@@ -330,8 +376,15 @@ orbEl.addEventListener('click', () => {
     showToast('Voice input isn\u2019t supported in this browser.');
     return;
   }
-  if (listening) stopListening();
-  else startListening();
+
+  if (listening || sessionActive) {
+    sessionActive = false;
+    stopListening();
+    setState('idle');
+  } else {
+    sessionActive = true;
+    startListening();
+  }
 });
 
 /*
